@@ -9,7 +9,8 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop neovim zsh less jq github-cli chezmoi age man nnn nodejs npm fd lazygit fzf wget
+  kitty bat btop neovim zsh less jq github-cli chezmoi age man
+  nnn nodejs npm fd lazygit fzf wget uv cpio
 
   # bluetooth
   blueman bluez bluez-utils
@@ -17,6 +18,9 @@ PACMAN_PKGS=(
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-user-dirs brightnessctl
   swaync swayosd power-profiles-daemon playerctl
+
+  # screenshot
+  slurp grim
 
   # files / disks / btrfs
   dolphin gnome-disk-utility udiskie btrfs-assistant snapper
@@ -43,6 +47,7 @@ PACMAN_PKGS=(
 AUR_PKGS=(
   hyprland-meta-git
   localsend
+  satty
 )
 
 install_pacman() {
