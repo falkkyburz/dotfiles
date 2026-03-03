@@ -9,14 +9,14 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop neovim zsh less jq github-cli chezmoi age man nnn
+  kitty bat btop neovim zsh less jq github-cli chezmoi age man nnn nodejs npm fd lazygit fzf wget
 
   # bluetooth
   blueman bluez bluez-utils
 
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-user-dirs brightnessctl
-  swaync swayosd power-profiles-daemon playerctl 
+  swaync swayosd power-profiles-daemon playerctl
 
   # files / disks / btrfs
   dolphin gnome-disk-utility udiskie btrfs-assistant snapper
@@ -59,7 +59,10 @@ install_pacman() {
 
 install_aur() {
   ((${#AUR_PKGS[@]} == 0)) && return 0
-  have yay || { echo "ERROR: yay not found for AUR installs." >&2; exit 1; }
+  have yay || {
+    echo "ERROR: yay not found for AUR installs." >&2
+    exit 1
+  }
 
   local missing=()
   for p in "${AUR_PKGS[@]}"; do
@@ -72,7 +75,10 @@ install_aur() {
 }
 
 main() {
-  have pacman || { echo "ERROR: pacman not found." >&2; exit 1; }
+  have pacman || {
+    echo "ERROR: pacman not found." >&2
+    exit 1
+  }
   install_pacman
   install_aur
 }
