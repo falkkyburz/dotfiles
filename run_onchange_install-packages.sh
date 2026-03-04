@@ -17,7 +17,7 @@ PACMAN_PKGS=(
 
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-user-dirs brightnessctl
-  swaync swayosd power-profiles-daemon playerctl
+  swaync libnotify swayosd power-profiles-daemon playerctl
 
   # screenshot
   slurp grim
