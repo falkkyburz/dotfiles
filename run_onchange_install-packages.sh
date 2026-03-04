@@ -32,13 +32,13 @@ PACMAN_PKGS=(
   noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu
 
   # browsers
-  firefox chromium libfido2
+  firefox chromium libfido2 speech-dispatcher
 
   # audio
   alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware
 
   # extras
-  libreoffice octave inkscape gimp fastfetch obs-studio
+  libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
