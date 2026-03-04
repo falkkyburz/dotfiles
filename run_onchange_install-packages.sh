@@ -16,7 +16,7 @@ PACMAN_PKGS=(
   blueman bluez bluez-utils
 
   # desktop / hyprland stack + services
-  xdg-desktop-portal xdg-user-dirs brightnessctl
+  xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
   swaync libnotify swayosd power-profiles-daemon playerctl
 
   # screenshot
@@ -38,7 +38,7 @@ PACMAN_PKGS=(
   alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware
 
   # extras
-  libreoffice octave inkscape gimp fastfetch
+  libreoffice octave inkscape gimp fastfetch obs-studio
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
