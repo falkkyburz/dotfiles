@@ -51,12 +51,36 @@ gs_usb
 vcan
 MODULES
 
+write_root_file /etc/systemd/system/vcan-interfaces.service 0644 root root <<'SERVICE'
+[Unit]
+Description=Create persistent vcan interfaces
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/modprobe vcan
+ExecStart=/usr/bin/sh -c '/usr/bin/ip link show vcan0 >/dev/null 2>&1 || /usr/bin/ip link add dev vcan0 type vcan'
+ExecStart=/usr/bin/sh -c '/usr/bin/ip link show vcan1 >/dev/null 2>&1 || /usr/bin/ip link add dev vcan1 type vcan'
+ExecStart=/usr/bin/ip link set dev vcan0 up
+ExecStart=/usr/bin/ip link set dev vcan1 up
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+if ! run_as_root modprobe gs_usb >/dev/null 2>&1; then
+  echo "warning: gs_usb kernel module not available; CAN net devices will not appear until the module is installed for this kernel" >&2
+fi
+run_as_root modprobe vcan >/dev/null 2>&1 || true
+
 write_root_file /etc/udev/rules.d/99-candlelight.rules 0644 root root <<'RULES'
-ACTION=="add", SUBSYSTEM=="net", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="606f", RUN+="/usr/bin/ip link set dev %k type can bitrate 500000", RUN+="/usr/bin/ip link set dev %k up"
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="can*", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="606f", RUN+="/usr/bin/sh -c '/usr/bin/ip link set dev %k down; /usr/bin/ip link set dev %k type can bitrate 500000 restart-ms 100; /usr/bin/ip link set dev %k up'"
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="can*", DRIVERS=="gs_usb", RUN+="/usr/bin/sh -c '/usr/bin/ip link set dev %k down; /usr/bin/ip link set dev %k type can bitrate 500000 restart-ms 100; /usr/bin/ip link set dev %k up'"
 RULES
 
 write_root_file /etc/udev/rules.d/99-usb-sound.rules 0644 root root <<RULES
-SUBSYSTEM=="usb", ACTION=="add", ENV{DEVTYPE}=="usb_device", RUN+="$target_home/.local/bin/play_sound.sh $target_home/.local/share/sound/ding.wav"
+SUBSYSTEM=="usb", ACTION=="add", ENV{DEVTYPE}=="usb_device", RUN+="$target_home/.local/bin/usb_notify.sh $target_home/.local/share/sound/ding.wav"
 RULES
 
 write_root_file /etc/udev/rules.d/99-ross-tech-hexv2.rules 0644 root root <<'RULES'
@@ -72,5 +96,5 @@ fi
 
 run_as_root udevadm control --reload-rules
 run_as_root udevadm trigger
-
-echo "udev rules installed and reloaded successfully"
+run_as_root systemctl daemon-reload
+run_as_root systemctl enable --now vcan-interfaces.service

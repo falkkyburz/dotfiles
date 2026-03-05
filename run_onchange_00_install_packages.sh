@@ -10,7 +10,7 @@ PACMAN_PKGS=(
 
   # core apps / tools
   kitty bat btop neovim zsh less jq github-cli chezmoi age man
-  nnn nodejs npm fd lazygit fzf wget uv cpio
+  nnn nodejs npm fd lazygit fzf wget uv cpio usbutils
 
   # bluetooth
   blueman bluez bluez-utils
