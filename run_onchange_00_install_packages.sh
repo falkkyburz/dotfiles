@@ -38,7 +38,10 @@ PACMAN_PKGS=(
   alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware
 
   # extras
-  libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular
+  libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
+
+  # development
+  code stlink pulseview
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
@@ -48,6 +51,7 @@ AUR_PKGS=(
   hyprland-meta-git
   localsend
   satty
+  can-utils-git
 )
 
 install_pacman() {
