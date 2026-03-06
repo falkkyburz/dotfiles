@@ -23,7 +23,7 @@ PACMAN_PKGS=(
   slurp grim
 
   # files / disks / btrfs
-  dolphin gnome-disk-utility udiskie btrfs-assistant snapper
+  dolphin gnome-disk-utility udiskie btrfs-assistant snapper snap-pac
 
   # clipboard
   wl-clipboard cliphist
@@ -52,6 +52,8 @@ AUR_PKGS=(
   localsend
   satty
   can-utils-git
+  limine-snapper-sync
+  limine-entry-tool
 )
 
 install_pacman() {

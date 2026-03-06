@@ -1,6 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+run_as_root() {
+  if [[ "${EUID}" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+write_root_file() {
+  local target="$1"
+  local mode="$2"
+  local owner="$3"
+  local group="$4"
+  local tmp
+
+  tmp="$(mktemp)"
+  cat >"$tmp"
+
+  run_as_root install -d -m 0755 "$(dirname "$target")"
+  run_as_root install -m "$mode" -o "$owner" -g "$group" "$tmp" "$target"
+
+  rm -f "$tmp"
+}
+
+install_limine_snapshot_cleanup_units() {
+  write_root_file /etc/systemd/system/limine-snapshot-clean.service 0644 root root <<'SERVICE'
+[Unit]
+Description=Clean limine snapshot kernel history
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c 'limine-snapper-sync && find /boot/*/limine_history -type f -name "*sha256_*" -mtime +30 -delete'
+SERVICE
+
+  write_root_file /etc/systemd/system/limine-snapshot-clean.timer 0644 root root <<'TIMER'
+[Unit]
+Description=Monthly limine snapshot cleanup
+
+[Timer]
+OnCalendar=monthly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+  run_as_root systemctl daemon-reload
+}
+
 system_unit_known() {
   systemctl list-unit-files "$1" --no-legend 2>/dev/null | grep -q .
 }
@@ -58,10 +107,14 @@ start_or_enable_user() {
 }
 
 main() {
+  install_limine_snapshot_cleanup_units
+
   SYSTEM_UNITS=(
     bluetooth.service
     snapper-timeline.timer
     snapper-cleanup.timer
+    limine-snapper-sync.service
+    limine-snapshot-clean.timer
   )
 
   if pacman -Q networkmanager >/dev/null 2>&1; then
