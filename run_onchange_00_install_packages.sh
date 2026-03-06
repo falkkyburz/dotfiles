@@ -17,28 +17,31 @@ PACMAN_PKGS=(
 
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
-  swaync libnotify swayosd power-profiles-daemon playerctl
+  swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland
 
   # screenshot
   slurp grim
 
   # files / disks / btrfs
-  dolphin gnome-disk-utility udiskie btrfs-assistant snapper snap-pac
+  dolphin udiskie btrfs-assistant snapper snap-pac
 
   # clipboard
   wl-clipboard cliphist
 
   # fonts
-  noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu
+  noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-liberation cantarell-fonts nwg-look
 
   # browsers
   firefox chromium libfido2 speech-dispatcher
 
-  # audio
-  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware
+  # audio / video
+  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
+
+  # KDE Tools
+  kclock isoimagewriter partitionmanager systemdgenie gwenview kdenlive ark
 
   # development
   code stlink pulseview

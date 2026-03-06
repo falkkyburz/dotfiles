@@ -27,3 +27,13 @@ if [[ ! -d /.snapshots ]] || [[ "$snapshots_state" != "750:root:wheel" ]]; then
   echo "Ensuring /.snapshots exists with the expected ownership and permissions..."
   sudo install -d -m 750 -o root -g wheel /.snapshots
 fi
+
+# Fix fonts for XWayland
+sudo install -d /etc/fonts/conf.d
+
+if [[ ! -e /etc/fonts/conf.d/70-no-bitmaps.conf ]]; then
+  sudo ln -s /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/70-no-bitmaps.conf
+fi
+
+sudo rm -f /etc/fonts/conf.d/10-scale-bitmap-fonts.conf
+fc-cache -f
