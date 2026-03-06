@@ -5,8 +5,6 @@ set -euo pipefail
 current_default_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
 if [[ "$current_default_browser" != "firefox.desktop" ]]; then
   xdg-settings set default-web-browser firefox.desktop
-else
-  echo "Default browser already firefox.desktop."
 fi
 
 # Configure the snapper config file as follows:
@@ -21,8 +19,6 @@ fi
 if [[ ! -f /etc/snapper/configs/root ]]; then
   echo "Creating snapper root config..."
   sudo snapper -c root create-config /
-else
-  echo "Snapper root config already exists."
 fi
 
 # Ensure /.snapshots ownership and permissions
@@ -30,6 +26,4 @@ snapshots_state="$(stat -c '%a:%U:%G' /.snapshots 2>/dev/null || true)"
 if [[ ! -d /.snapshots ]] || [[ "$snapshots_state" != "750:root:wheel" ]]; then
   echo "Ensuring /.snapshots exists with the expected ownership and permissions..."
   sudo install -d -m 750 -o root -g wheel /.snapshots
-else
-  echo "/.snapshots already has the expected ownership and permissions."
 fi
