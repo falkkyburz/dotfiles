@@ -26,7 +26,10 @@ else
 fi
 
 # Ensure /.snapshots ownership and permissions
-if [[ ! -d /.snapshots ]]; then
-  echo "Creating /.snapshots..."
+snapshots_state="$(stat -c '%a:%U:%G' /.snapshots 2>/dev/null || true)"
+if [[ ! -d /.snapshots ]] || [[ "$snapshots_state" != "750:root:wheel" ]]; then
+  echo "Ensuring /.snapshots exists with the expected ownership and permissions..."
   sudo install -d -m 750 -o root -g wheel /.snapshots
+else
+  echo "/.snapshots already has the expected ownership and permissions."
 fi

@@ -9,18 +9,36 @@ run_as_root() {
   fi
 }
 
+udev_rules_changed=0
+systemd_units_changed=0
+
 write_root_file() {
   local target="$1"
   local mode="$2"
   local owner="$3"
   local group="$4"
+  local desired_meta="${mode#0}:$owner:$group"
+  local current_meta=""
   local tmp
 
   tmp="$(mktemp)"
   cat >"$tmp"
 
   run_as_root install -d -m 0755 "$(dirname "$target")"
+
+  if run_as_root test -e "$target"; then
+    current_meta="$(run_as_root stat -c '%a:%U:%G' "$target")"
+    if run_as_root cmp -s "$tmp" "$target" && [[ "$current_meta" == "$desired_meta" ]]; then
+      rm -f "$tmp"
+      return 0
+    fi
+  fi
+
   run_as_root install -m "$mode" -o "$owner" -g "$group" "$tmp" "$target"
+  case "$target" in
+    /etc/udev/rules.d/*) udev_rules_changed=1 ;;
+    /etc/systemd/system/*) systemd_units_changed=1 ;;
+  esac
 
   rm -f "$tmp"
 }
@@ -94,7 +112,13 @@ elif [[ -n "${USER:-}" ]]; then
   run_as_root usermod -aG "$serial_group" "$USER" || true
 fi
 
-run_as_root udevadm control --reload-rules
-run_as_root udevadm trigger
-run_as_root systemctl daemon-reload
+if ((udev_rules_changed)); then
+  run_as_root udevadm control --reload-rules
+  run_as_root udevadm trigger
+fi
+
+if ((systemd_units_changed)); then
+  run_as_root systemctl daemon-reload
+fi
+
 run_as_root systemctl enable --now vcan-interfaces.service

@@ -9,18 +9,34 @@ run_as_root() {
   fi
 }
 
+systemd_units_changed=0
+
 write_root_file() {
   local target="$1"
   local mode="$2"
   local owner="$3"
   local group="$4"
+  local desired_meta="${mode#0}:$owner:$group"
+  local current_meta=""
   local tmp
 
   tmp="$(mktemp)"
   cat >"$tmp"
 
   run_as_root install -d -m 0755 "$(dirname "$target")"
+
+  if run_as_root test -e "$target"; then
+    current_meta="$(run_as_root stat -c '%a:%U:%G' "$target")"
+    if run_as_root cmp -s "$tmp" "$target" && [[ "$current_meta" == "$desired_meta" ]]; then
+      rm -f "$tmp"
+      return 0
+    fi
+  fi
+
   run_as_root install -m "$mode" -o "$owner" -g "$group" "$tmp" "$target"
+  case "$target" in
+    /etc/systemd/system/*) systemd_units_changed=1 ;;
+  esac
 
   rm -f "$tmp"
 }
@@ -46,8 +62,6 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 TIMER
-
-  run_as_root systemctl daemon-reload
 }
 
 system_unit_known() {
@@ -108,6 +122,10 @@ start_or_enable_user() {
 
 main() {
   install_limine_snapshot_cleanup_units
+
+  if ((systemd_units_changed)); then
+    run_as_root systemctl daemon-reload
+  fi
 
   SYSTEM_UNITS=(
     bluetooth.service
