@@ -2,7 +2,12 @@
 # chezmoi: run_onchange_install-packages.sh
 set -euo pipefail
 
-xdg-settings set default-web-browser firefox.desktop
+current_default_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
+if [[ "$current_default_browser" != "firefox.desktop" ]]; then
+  xdg-settings set default-web-browser firefox.desktop
+else
+  echo "Default browser already firefox.desktop."
+fi
 
 # Configure the snapper config file as follows:
 # sudoedit /etc/snapper/configs/root
@@ -13,7 +18,7 @@ xdg-settings set default-web-browser firefox.desktop
 # TIMELINE_LIMIT_YEARLY="0"
 
 # Ensure snapper root config exists
-if ! sudo snapper -c root list >/dev/null 2>&1; then
+if [[ ! -f /etc/snapper/configs/root ]]; then
   echo "Creating snapper root config..."
   sudo snapper -c root create-config /
 else
@@ -21,19 +26,7 @@ else
 fi
 
 # Ensure /.snapshots ownership and permissions
-current_mode="$(stat -c '%a' /.snapshots)"
-current_group="$(stat -c '%G' /.snapshots)"
-
-if [[ "$current_mode" != "750" ]]; then
-  echo "Setting /.snapshots mode to 750..."
-  sudo chmod 750 /.snapshots
-else
-  echo "Mode on /.snapshots already 750."
-fi
-
-if [[ "$current_group" != "wheel" ]]; then
-  echo "Setting /.snapshots group to wheel..."
-  sudo chown :wheel /.snapshots
-else
-  echo "Group on /.snapshots already wheel."
+if [[ ! -d /.snapshots ]]; then
+  echo "Creating /.snapshots..."
+  sudo install -d -m 750 -o root -g wheel /.snapshots
 fi
