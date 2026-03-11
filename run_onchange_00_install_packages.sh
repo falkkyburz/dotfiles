@@ -10,7 +10,7 @@ PACMAN_PKGS=(
 
   # core apps / tools
   kitty bat btop neovim zsh less jq github-cli chezmoi age man
-  nnn nodejs npm fd lazygit fzf wget uv cpio usbutils
+  nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
 
   # bluetooth
   blueman bluez bluez-utils
@@ -23,7 +23,7 @@ PACMAN_PKGS=(
   slurp grim
 
   # files / disks / btrfs
-  dolphin udiskie btrfs-assistant snapper snap-pac
+  nautilus udiskie btrfs-assistant snapper snap-pac
 
   # clipboard
   wl-clipboard cliphist
