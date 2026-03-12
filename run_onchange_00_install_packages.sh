@@ -41,7 +41,7 @@ PACMAN_PKGS=(
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
 
   # KDE Tools
-  kclock isoimagewriter partitionmanager systemdgenie gwenview kdenlive ark
+  gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
   code stlink pulseview

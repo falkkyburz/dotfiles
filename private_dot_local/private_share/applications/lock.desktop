@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Lock
+Exec=hyprlock
+Icon=system-log-out
+Categories=System;
+NoDisplay=false
