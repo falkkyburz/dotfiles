@@ -17,7 +17,7 @@ PACMAN_PKGS=(
 
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl fuzzel
-  swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland
+  swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland librsvg
 
   # screenshot
   slurp grim
@@ -52,7 +52,7 @@ PACMAN_PKGS=(
 
   # Docker / VM
   docker docker-compose docker-buildx lazydocker
-  qemu-desktop libvirt dnsmasq virt-viewer freerdp
+  qemu-desktop libvirt dnsmasq virt-viewer
 )
 
 AUR_PKGS=(
