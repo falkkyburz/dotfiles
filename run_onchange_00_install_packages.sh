@@ -9,7 +9,7 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop neovim zsh less jq github-cli chezmoi age man
+  kitty bat btop neovim zsh less jq github-cli chezmoi age man tree
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
 
   # bluetooth
