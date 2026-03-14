@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Windows VM
+Name=Windows VM Start
 Comment=Start Dockur Windows VM and connect via RDP
 Exec=/home/falk/.local/bin/windows-vm-start.sh
 Icon=computer
