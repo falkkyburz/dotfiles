@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Windows VM
+Comment=Start Dockur Windows VM and connect via RDP
+Exec=/home/falk/.local/bin/windows-vm-start.sh
+Icon=computer
+Terminal=true
+Categories=System;
+StartupNotify=true

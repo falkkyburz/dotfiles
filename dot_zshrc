@@ -106,3 +106,5 @@ alias nnna="nnn -H"
 
 # Plugins that are not in the ZSH search path.
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+[[ -f ~/.env ]] && source ~/.env

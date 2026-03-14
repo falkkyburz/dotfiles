@@ -35,7 +35,7 @@ write_root_file() {
 
   run_as_root install -m "$mode" -o "$owner" -g "$group" "$tmp" "$target"
   case "$target" in
-    /etc/systemd/system/*) systemd_units_changed=1 ;;
+  /etc/systemd/system/*) systemd_units_changed=1 ;;
   esac
 
   rm -f "$tmp"
@@ -182,6 +182,7 @@ main() {
     snapper-cleanup.timer
     limine-snapper-sync.service
     limine-snapshot-clean.timer
+    docker.service
   )
 
   if pacman -Q networkmanager >/dev/null 2>&1; then

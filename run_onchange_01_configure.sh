@@ -37,3 +37,71 @@ fi
 
 sudo rm -f /etc/fonts/conf.d/10-scale-bitmap-fonts.conf
 fc-cache -f
+
+# Make docker config file
+sudo mkdir -p /etc/docker
+
+tmp="$(mktemp)"
+cat >"$tmp" <<'EOF'
+{
+  "storage-driver": "btrfs"
+}
+EOF
+
+if ! sudo cmp -s "$tmp" /etc/docker/daemon.json 2>/dev/null; then
+  sudo install -Dm644 "$tmp" /etc/docker/daemon.json
+fi
+
+rm -f "$tmp"
+
+configure_windows_vm() {
+  local project_dir="${HOME}/.local/share/windows-docker"
+  local storage_dir="${project_dir}/windows"
+  local compose_file="${project_dir}/compose.yml"
+  local tmp_file
+
+  install -d -m 0755 "${project_dir}"
+  install -d -m 0755 "${storage_dir}"
+
+  tmp_file="$(mktemp)"
+  cat >"${tmp_file}" <<'EOF'
+services:
+  windows:
+    image: dockurr/windows
+    container_name: windows
+    restart: unless-stopped
+    stop_grace_period: 2m
+    environment:
+      VERSION: "11"
+      RAM_SIZE: "8G"
+      CPU_CORES: "4"
+      DISK_SIZE: "64G"
+      ARGUMENTS: "-device usb-host,vendorid=0x0483,productid=0xa0cb"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+      - /dev/bus/usb
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "8006:8006"
+      - "3389:3389/tcp"
+      - "3389:3389/udp"
+    volumes:
+      - ./windows:/storage
+EOF
+
+  if [[ ! -f "${compose_file}" ]] || ! cmp -s "${tmp_file}" "${compose_file}"; then
+    mv "${tmp_file}" "${compose_file}"
+    echo "Updated ${compose_file}"
+  else
+    rm -f "${tmp_file}"
+    echo "Unchanged ${compose_file}"
+  fi
+}
+
+configure_windows_vm
+
+# Add user to groups
+sudo usermod -aG wireshark $USER
+sudo usermod -aG docker $USER

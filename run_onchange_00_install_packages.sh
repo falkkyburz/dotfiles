@@ -39,15 +39,20 @@ PACMAN_PKGS=(
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
+  lolcat figlet duf dust ripgrep exiftool rsync bandwhich
 
-  # KDE Tools
+  # GUI Tools
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
-  code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli
+  code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
+
+  # Docker / VM
+  docker docker-compose docker-buildx lazydocker
+  qemu-desktop libvirt dnsmasq virt-viewer freerdp
 )
 
 AUR_PKGS=(
