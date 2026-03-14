@@ -16,14 +16,14 @@ PACMAN_PKGS=(
   blueman bluez bluez-utils
 
   # desktop / hyprland stack + services
-  xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
+  xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl fuzzel
   swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland
 
   # screenshot
   slurp grim
 
   # files / disks / btrfs
-  nautilus udiskie btrfs-assistant snapper snap-pac
+  nautilus udiskie btrfs-assistant snapper snap-pac samba gvfs-smb
 
   # clipboard
   wl-clipboard cliphist
@@ -44,7 +44,7 @@ PACMAN_PKGS=(
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
-  code stlink pulseview
+  code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
@@ -57,6 +57,7 @@ AUR_PKGS=(
   can-utils-git
   limine-snapper-sync
   limine-entry-tool
+  xdg-terminal-exec
 )
 
 install_pacman() {
