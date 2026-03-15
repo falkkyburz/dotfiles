@@ -16,7 +16,7 @@ PACMAN_PKGS=(
   blueman bluez bluez-utils
 
   # desktop / hyprland stack + services
-  xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl fuzzel
+  xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
   swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland librsvg
 
   # screenshot
