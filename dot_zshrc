@@ -103,6 +103,7 @@ fi
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias nnna="nnn -H"
+alias activate="source .venv/bin/activate"
 
 # Plugins that are not in the ZSH search path.
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh

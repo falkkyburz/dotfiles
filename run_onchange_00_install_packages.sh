@@ -45,7 +45,9 @@ PACMAN_PKGS=(
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
-  code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt
+  gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt
+  # development zephyr
+  cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
 
   # nm gui tools (installed per your earlier list)
   network-manager-applet nm-connection-editor wpa_supplicant
@@ -74,7 +76,7 @@ install_pacman() {
 
   ((${#missing[@]} == 0)) && return 0
 
-  sudo pacman -Syu --needed --noconfirm "${missing[@]}"
+  sudo pacman -S --needed --noconfirm "${missing[@]}"
 }
 
 install_aur() {
