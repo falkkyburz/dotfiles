@@ -99,9 +99,6 @@ start_or_enable_user() {
 }
 
 main() {
-  install_limine_snapshot_cleanup_units
-  retire_shadowed_limine_configs
-
   if ((systemd_units_changed)); then
     run_as_root systemctl daemon-reload
   fi

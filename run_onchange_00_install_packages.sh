@@ -11,6 +11,7 @@ PACMAN_PKGS=(
   # core apps / tools
   kitty bat btop neovim zsh less jq github-cli chezmoi age man tree lynx
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
+  unzip tree-sitter-cli
 
   # bluetooth
   blueman bluez bluez-utils
@@ -79,6 +80,19 @@ install_pacman() {
   sudo pacman -S --needed --noconfirm "${missing[@]}"
 }
 
+bootstrap_yay() {
+  have yay && return 0
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
+  (
+    cd "$tmpdir/yay"
+    makepkg -si --needed --noconfirm
+  )
+  rm -rf "$tmpdir"
+}
+
 install_aur() {
   ((${#AUR_PKGS[@]} == 0)) && return 0
   have yay || {
@@ -102,6 +116,7 @@ main() {
     exit 1
   }
   install_pacman
+  bootstrap_yay
   install_aur
 }
 
