@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: pomo <work_minutes> [break_minutes]"
+  echo "Example: pomo 30 5"
+}
+
+[[ $# -lt 1 || $# -gt 2 ]] && { usage; exit 1; }
+[[ ${1:-} =~ ^[0-9]+$ ]] || { usage; exit 1; }
+[[ ${2:-0} =~ ^[0-9]+$ ]] || { usage; exit 1; }
+
+work_min=$1
+break_min=${2:-0}
+BAR_WIDTH=40
+
+BAR_FULL_CHAR='>'
+BAR_EMPTY_CHAR=' '
+
+GREEN=$'\033[32m'
+YELLOW=$'\033[33m'
+BLUE=$'\033[34m'
+CYAN=$'\033[36m'
+BOLD=$'\033[1m'
+RESET=$'\033[0m'
+
+hide_cursor() { tput civis 2>/dev/null || true; }
+show_cursor() { tput cnorm 2>/dev/null || true; }
+
+cleanup() {
+  show_cursor
+  printf '\n'
+}
+trap cleanup EXIT INT TERM
+
+format_time() {
+  local total=$1
+  printf '%02d:%02d' $((total / 60)) $((total % 60))
+}
+
+repeat_char() {
+  local char=$1
+  local count=$2
+  local out=""
+
+  for ((i=0; i<count; i++)); do
+    out+="$char"
+  done
+
+  printf '%s' "$out"
+}
+
+draw_bar() {
+  local elapsed=$1
+  local total=$2
+  local label=$3
+  local color=$4
+
+  local percent=$(( elapsed * 100 / total ))
+  local filled=$(( elapsed * BAR_WIDTH / total ))
+  local empty=$(( BAR_WIDTH - filled ))
+
+  local bar_filled
+  local bar_empty
+
+  bar_filled=$(repeat_char "$BAR_FULL_CHAR" "$filled")
+  bar_empty=$(repeat_char "$BAR_EMPTY_CHAR" "$empty")
+
+  printf '\r%s%s%s [%s%s%s%s] %3d%% | %s / %s' \
+    "$BOLD" "$label" "$RESET" \
+    "$color" "$bar_filled" "$RESET" "$bar_empty" \
+    "$percent" "$(format_time "$elapsed")" "$(format_time "$total")"
+}
+
+run_timer() {
+  local minutes=$1
+  local label=$2
+  local color=$3
+  local total=$(( minutes * 60 ))
+
+  (( total > 0 )) || return 0
+
+  for ((elapsed=0; elapsed<=total; elapsed++)); do
+    draw_bar "$elapsed" "$total" "$label" "$color"
+    (( elapsed < total )) && sleep 1
+  done
+
+  printf '\n'
+}
+
+hide_cursor
+
+while true; do
+  run_timer "$work_min" "WORK " "$GREEN"
+
+  if (( break_min > 0 )); then
+    run_timer "$break_min" "BREAK" "$CYAN"
+  fi
+done

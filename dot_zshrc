@@ -104,8 +104,12 @@ fi
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias nnna="nnn -H"
 alias activate="source .venv/bin/activate"
+alias t=date -R
 
 # Plugins that are not in the ZSH search path.
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 [[ -f ~/.env ]] && source ~/.env
+
+path=("$HOME/.local/bin" $path)
+export PATH

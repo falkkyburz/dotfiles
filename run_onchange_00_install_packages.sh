@@ -9,7 +9,7 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop neovim zsh less jq github-cli chezmoi age man tree
+  kitty bat btop neovim zsh less jq github-cli chezmoi age man tree lynx
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
 
   # bluetooth
@@ -23,7 +23,7 @@ PACMAN_PKGS=(
   slurp grim
 
   # files / disks / btrfs
-  nautilus udiskie btrfs-assistant snapper snap-pac samba gvfs-smb
+  nautilus udiskie btrfs-assistant samba gvfs-smb systemd-ukify
 
   # clipboard
   wl-clipboard cliphist
@@ -62,9 +62,9 @@ AUR_PKGS=(
   localsend
   satty
   can-utils-git
-  limine-snapper-sync
-  limine-entry-tool
   xdg-terminal-exec
+  opencode
+  unixcw
 )
 
 install_pacman() {

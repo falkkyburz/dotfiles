@@ -41,76 +41,6 @@ write_root_file() {
   rm -f "$tmp"
 }
 
-install_limine_snapshot_cleanup_units() {
-  write_root_file /etc/systemd/system/limine-snapshot-clean.service 0644 root root <<'SERVICE'
-[Unit]
-Description=Clean limine snapshot kernel history
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/bash -c 'limine-snapper-sync && find /boot/*/limine_history -type f -name "*sha256_*" -mtime +30 -delete'
-SERVICE
-
-  write_root_file /etc/systemd/system/limine-snapshot-clean.timer 0644 root root <<'TIMER'
-[Unit]
-Description=Monthly limine snapshot cleanup
-
-[Timer]
-OnCalendar=monthly
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-TIMER
-}
-
-retire_shadowed_limine_configs() {
-  local canonical="/boot/limine.conf"
-  local shadowed=(
-    /boot/limine/limine.conf
-    /boot/EFI/limine/limine.conf
-    /boot/EFI/BOOT/limine.conf
-  )
-  local source=""
-  local candidate
-  local backup
-  local stamp
-
-  if ! run_as_root test -e "$canonical"; then
-    for candidate in "${shadowed[@]}"; do
-      if run_as_root test -e "$candidate"; then
-        source="$candidate"
-        break
-      fi
-    done
-
-    if [[ -n "$source" ]]; then
-      run_as_root install -d -m 0755 "$(dirname "$canonical")"
-      run_as_root cp "$source" "$canonical"
-      printf 'Promoted Limine config to canonical path: %s -> %s\n' "$source" "$canonical"
-    else
-      return 0
-    fi
-  fi
-
-  for candidate in "${shadowed[@]}"; do
-    if ! run_as_root test -e "$candidate"; then
-      continue
-    fi
-
-    if run_as_root cmp -s "$canonical" "$candidate"; then
-      run_as_root rm -f "$candidate"
-      printf 'Removed shadowed Limine config: %s\n' "$candidate"
-      continue
-    fi
-
-    stamp="$(date +%Y%m%d%H%M%S)"
-    backup="${candidate}.shadowed-${stamp}.bak"
-    run_as_root cp "$candidate" "$backup"
-    run_as_root rm -f "$candidate"
-    printf 'Backed up and removed shadowed Limine config: %s -> %s\n' "$candidate" "$backup"
-  done
-}
 
 system_unit_known() {
   systemctl list-unit-files "$1" --no-legend 2>/dev/null | grep -q .
@@ -178,10 +108,6 @@ main() {
 
   SYSTEM_UNITS=(
     bluetooth.service
-    snapper-timeline.timer
-    snapper-cleanup.timer
-    limine-snapper-sync.service
-    limine-snapshot-clean.timer
     docker.service
   )
 
