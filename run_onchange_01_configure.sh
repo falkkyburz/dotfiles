@@ -44,6 +44,59 @@ fi
 
 rm -f "$tmp"
 
+# Provision systemd-boot UKI paths and mkinitcpio preset
+sudo install -d -m 0755 /boot/EFI/Linux
+sudo install -d -m 0755 /etc/kernel
+sudo install -d -m 0755 /etc/mkinitcpio.d
+
+if [[ ! -s /etc/kernel/cmdline ]]; then
+  kernel_cmdline=""
+
+  for token in $(< /proc/cmdline); do
+    case "$token" in
+      BOOT_IMAGE=*|initrd=*)
+        continue
+        ;;
+    esac
+
+    kernel_cmdline+="${kernel_cmdline:+ }${token}"
+  done
+
+  if [[ -z "$kernel_cmdline" ]]; then
+    kernel_cmdline="rw"
+  fi
+
+  tmp="$(mktemp)"
+  printf '%s\n' "$kernel_cmdline" >"$tmp"
+
+  if ! sudo cmp -s "$tmp" /etc/kernel/cmdline 2>/dev/null; then
+    sudo install -Dm644 "$tmp" /etc/kernel/cmdline
+  fi
+
+  rm -f "$tmp"
+fi
+
+tmp="$(mktemp)"
+cat >"$tmp" <<'EOF'
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux"
+
+PRESETS=('default' 'fallback')
+
+default_image="/boot/initramfs-linux.img"
+default_uki="/boot/EFI/Linux/arch-linux.efi"
+
+fallback_image="/boot/initramfs-linux-fallback.img"
+fallback_uki="/boot/EFI/Linux/arch-linux-fallback.efi"
+fallback_options="-S autodetect"
+EOF
+
+if ! sudo cmp -s "$tmp" /etc/mkinitcpio.d/linux.preset 2>/dev/null; then
+  sudo install -Dm644 "$tmp" /etc/mkinitcpio.d/linux.preset
+fi
+
+rm -f "$tmp"
+
 # Configure Windows VM
 install -d -m 0755 "${HOME}/.local/share/windows-docker"
 install -d -m 0755 "${HOME}/.local/share/windows-docker/windows"
