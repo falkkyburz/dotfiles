@@ -9,7 +9,7 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop neovim zsh less jq github-cli chezmoi age man tree lynx
+  kitty bat btop zsh less jq github-cli chezmoi age man tree lynx
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
   unzip tree-sitter-cli
 
@@ -46,7 +46,8 @@ PACMAN_PKGS=(
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
-  gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt
+  gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo
+
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
 
@@ -66,6 +67,7 @@ AUR_PKGS=(
   xdg-terminal-exec
   opencode
   unixcw
+  neovim-git
 )
 
 install_pacman() {
