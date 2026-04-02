@@ -11,6 +11,24 @@ i_mem='󰘚'
 i_bt='󰂱'
 i_bat='󰁹'
 
+battery_icon() {
+  local c="${1:-0}"
+  [[ "$c" =~ ^[0-9]+$ ]] || c=0
+  ((c < 0)) && c=0
+  ((c > 100)) && c=100
+  ((c <= 5)) && { printf '󰂎'; return; }
+  ((c <= 15)) && { printf '󰁺'; return; }
+  ((c <= 25)) && { printf '󰁻'; return; }
+  ((c <= 35)) && { printf '󰁼'; return; }
+  ((c <= 45)) && { printf '󰁽'; return; }
+  ((c <= 55)) && { printf '󰁾'; return; }
+  ((c <= 65)) && { printf '󰁿'; return; }
+  ((c <= 75)) && { printf '󰂀'; return; }
+  ((c <= 85)) && { printf '󰂁'; return; }
+  ((c <= 95)) && { printf '󰂂'; return; }
+  printf '󰁹'
+}
+
 ws() {
   local l id
   IFS= read -r l < <(hyprctl activeworkspace 2>/dev/null || true)
@@ -29,12 +47,17 @@ mem() {
 }
 
 bat() {
-  local b c s
+  local b c s icon src
   for b in /sys/class/power_supply/BAT*; do
     [[ -d "$b" ]] || continue
     read -r c < "$b/capacity" || continue
     read -r s < "$b/status" || s="?"
-    [[ "$s" == Charging ]] && printf 'bat ↯ %s%%' "$c" || printf 'bat %s%%' "$c"
+    icon="$(battery_icon "$c")"
+    if [[ "$s" == Charging ]]; then
+      printf 'bat ↯%s %s%% %s' "$icon" "$c"
+    else
+      printf 'bat %s %s%% %s' "$icon" "$c"
+    fi
     return
   done
   printf 'bat n/a'
@@ -118,7 +141,7 @@ while true; do
     nbat="$(bat)"; [[ "$nbat" != "$bat_s" ]] && redraw=1; bat_s="$nbat"; next_bat=$((now + bat_every))
   fi
   if (( ${redraw:-1} )); then
-    printf '%s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$clk" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$bt_s" "$i_bat" "${bat_s#bat }"
+    printf '%s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$clk" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$bt_s" "${bat_s#bat }"
     redraw=0
   fi
   sleep 0.15
