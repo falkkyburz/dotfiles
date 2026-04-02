@@ -18,7 +18,8 @@ PACMAN_PKGS=(
 
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
-  swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland qt6-wayland librsvg
+  swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland
+  qt6-wayland librsvg papirus-icon-theme
 
   # screenshot
   slurp grim

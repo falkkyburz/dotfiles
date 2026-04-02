@@ -1,5 +1,6 @@
 [Added Associations]
 image/png=gwenview-2.desktop;gwenview.desktop;
+application/x-extension-fcstd=org.freecad.FreeCAD.desktop;
 
 [Default Applications]
 text/html=firefox.desktop
@@ -7,7 +8,6 @@ x-scheme-handler/about=firefox.desktop
 x-scheme-handler/http=firefox.desktop
 x-scheme-handler/https=firefox.desktop
 x-scheme-handler/unknown=firefox.desktop
-
 image/png=org.kde.gwenview.desktop
 image/jpeg=org.kde.gwenview.desktop
 image/webp=org.kde.gwenview.desktop
@@ -15,10 +15,8 @@ image/gif=org.kde.gwenview.desktop
 image/bmp=org.kde.gwenview.desktop
 image/tiff=org.kde.gwenview.desktop
 image/svg+xml=org.kde.gwenview.desktop
-
 inode/directory=org.kde.dolphin.desktop
 application/pdf=org.kde.okular.desktop
-
 application/vnd.openxmlformats-officedocument.wordprocessingml.document=writer.desktop
 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=calc.desktop
 application/vnd.openxmlformats-officedocument.presentationml.presentation=impress.desktop
@@ -28,4 +26,3 @@ application/vnd.ms-powerpoint=impress.desktop
 application/vnd.oasis.opendocument.text=writer.desktop
 application/vnd.oasis.opendocument.spreadsheet=calc.desktop
 application/vnd.oasis.opendocument.presentation=impress.desktop
-
