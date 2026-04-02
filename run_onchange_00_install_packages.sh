@@ -19,7 +19,7 @@ PACMAN_PKGS=(
   # desktop / hyprland stack + services
   xdg-desktop-portal xdg-desktop-portal-gtk xdg-user-dirs brightnessctl
   swaync libnotify swayosd power-profiles-daemon playerctl qt5-wayland
-  qt6-wayland librsvg papirus-icon-theme
+  qt6-wayland librsvg papirus-icon-theme wlr-protocols
 
   # screenshot
   slurp grim
@@ -31,7 +31,8 @@ PACMAN_PKGS=(
   wl-clipboard cliphist
 
   # fonts
-  noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-liberation cantarell-fonts nwg-look
+  noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-liberation 
+  cantarell-fonts nwg-look ttf-nerd-fonts-symbols-mono
 
   # browsers
   firefox chromium libfido2 speech-dispatcher
