@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bin="$root/build/release/minibar"
-
-if [[ ! -x "$bin" ]]; then
-  cmake --preset release
-  cmake --build --preset release
+if ! command -v minibar >/dev/null 2>&1; then
+  printf 'minibar command not found in PATH\n' >&2
+  exit 1
 fi
 
 i_cpu='󰍛'
@@ -121,4 +118,4 @@ while true; do
     redraw=0
   fi
   sleep 0.15
-done | "$bin"
+done | minibar
