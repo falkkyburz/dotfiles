@@ -1,7 +1,10 @@
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -42,6 +45,10 @@ struct App {
     bool configured = false;
     bool running = true;
     bool redraw = true;
+    bool visible = true;
+
+    int hypr_fd = -1;
+    std::string hypr_buf;
 
     std::string left = "[1] 2 3 4";
     std::string center = "minibar";
@@ -146,8 +153,106 @@ static void sync_buffer_scale(App& a) {
     }
 }
 
+static void set_bar_visible(App& a, bool visible) {
+    if (!a.layer_surface || !a.surface || visible == a.visible) return;
+
+    a.visible = visible;
+
+    zwlr_layer_surface_v1_set_exclusive_zone(a.layer_surface, visible ? a.height : 0);
+
+    if (visible) {
+        wl_surface_set_input_region(a.surface, nullptr);
+        a.configured = false;
+        a.redraw = false;
+    } else {
+        wl_region* empty = wl_compositor_create_region(a.compositor);
+        wl_surface_set_input_region(a.surface, empty);
+        wl_region_destroy(empty);
+
+        wl_surface_attach(a.surface, nullptr, 0, 0);
+        wl_surface_damage_buffer(a.surface, 0, 0, INT32_MAX, INT32_MAX);
+        a.configured = false;
+        a.redraw = false;
+    }
+
+    wl_surface_commit(a.surface);
+}
+
+static int connect_hypr_socket2() {
+    const char* runtime = std::getenv("XDG_RUNTIME_DIR");
+    const char* sig = std::getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    if (!runtime || !sig || !*runtime || !*sig) return -1;
+
+    std::string path = std::string(runtime) + "/hypr/" + sig + "/.socket2.sock";
+
+    int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) return -1;
+
+    sockaddr_un addr{};
+    if (path.size() >= sizeof(addr.sun_path)) {
+        close(fd);
+        return -1;
+    }
+    addr.sun_family = AF_UNIX;
+    std::memcpy(addr.sun_path, path.c_str(), path.size() + 1);
+
+    if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags >= 0) fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    return fd;
+}
+
+static void handle_hypr_event(App& a, const std::string& line) {
+    constexpr const char* prefix = "fullscreen>>";
+    if (line.rfind(prefix, 0) != 0) return;
+
+    bool fullscreen = line.size() > std::strlen(prefix) && line[std::strlen(prefix)] != '0';
+    set_bar_visible(a, !fullscreen);
+}
+
+static void handle_hypr_readable(App& a) {
+    if (a.hypr_fd < 0) return;
+
+    char buf[1024];
+    while (true) {
+        ssize_t n = recv(a.hypr_fd, buf, sizeof(buf), 0);
+        if (n > 0) {
+            a.hypr_buf.append(buf, (size_t)n);
+            size_t pos = 0;
+            while (true) {
+                size_t nl = a.hypr_buf.find('\n', pos);
+                if (nl == std::string::npos) {
+                    a.hypr_buf.erase(0, pos);
+                    break;
+                }
+                handle_hypr_event(a, a.hypr_buf.substr(pos, nl - pos));
+                pos = nl + 1;
+            }
+            continue;
+        }
+
+        if (n == 0) {
+            close(a.hypr_fd);
+            a.hypr_fd = -1;
+            a.hypr_buf.clear();
+            return;
+        }
+
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return;
+
+        close(a.hypr_fd);
+        a.hypr_fd = -1;
+        a.hypr_buf.clear();
+        return;
+    }
+}
+
 static void draw(App& a) {
-    if (!a.configured || a.width <= 0) return;
+    if (!a.configured || a.width <= 0 || !a.visible) return;
     int bw = a.width * a.buffer_scale;
     int bh = a.height * a.buffer_scale;
     if (!a.buf.wl || a.buf.w != bw || a.buf.h != bh) {
@@ -280,6 +385,7 @@ int main() {
     a.layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         a.layer_shell, a.surface, a.output,
         ZWLR_LAYER_SHELL_V1_LAYER_TOP, "minibar");
+    a.hypr_fd = connect_hypr_socket2();
     sync_buffer_scale(a);
 
     zwlr_layer_surface_v1_add_listener(a.layer_surface, &layer_surface_listener, &a);
@@ -302,12 +408,13 @@ int main() {
 
         wl_display_flush(a.display);
 
-        pollfd fds[2] = {
+        pollfd fds[3] = {
             { .fd = wl_fd, .events = POLLIN, .revents = 0 },
             { .fd = stdin_fd, .events = POLLIN, .revents = 0 },
+            { .fd = a.hypr_fd, .events = POLLIN, .revents = 0 },
         };
 
-        if (poll(fds, 2, -1) < 0) break;
+        if (poll(fds, 3, -1) < 0) break;
 
         if (fds[0].revents & POLLIN) {
             if (wl_display_dispatch(a.display) < 0) break;
@@ -335,12 +442,21 @@ int main() {
                 a.redraw = true;
             }
         }
+
+        if (fds[2].revents & POLLIN) {
+            handle_hypr_readable(a);
+        } else if (fds[2].revents & (POLLHUP | POLLERR | POLLNVAL)) {
+            close(a.hypr_fd);
+            a.hypr_fd = -1;
+            a.hypr_buf.clear();
+        }
     }
 
     destroy_buffer(a.buf);
     if (a.layer_surface) zwlr_layer_surface_v1_destroy(a.layer_surface);
     if (a.surface) wl_surface_destroy(a.surface);
     if (a.output) wl_output_destroy(a.output);
+    if (a.hypr_fd >= 0) close(a.hypr_fd);
     if (a.layer_shell) zwlr_layer_shell_v1_destroy(a.layer_shell);
     if (a.shm) wl_shm_destroy(a.shm);
     if (a.compositor) wl_compositor_destroy(a.compositor);

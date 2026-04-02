@@ -86,7 +86,7 @@ cpu() {
   ((dt > 0)) && REPLY="cpu $(((dt - di) * 100 / dt))%" || REPLY='cpu ?'
 }
 
-ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; clk="$(date '+%a %Y-%m-%d %H:%M:%S')"
+ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; clk="$(date '+%a %Y-%m-%d %H:%M')"
 cpu; cpu_s="$REPLY"
 wifi_every=15
 bat_every=30
@@ -97,12 +97,16 @@ next_bt=0
 
 while true; do
   now="$(date +%s)"
+  nclk="$(date '+%a %Y-%m-%d %H:%M')"
   nw="$(ws)"
   if [[ "$nw" != "$ws_s" ]]; then
     ws_s="$nw"; redraw=1
   fi
   if [[ "${last:-}" != "$now" ]]; then
-    last="$now"; ws_s="$(ws)"; cpu; cpu_s="$REPLY"; mem_s="$(mem)"; clk="$(date '+%a %Y-%m-%d %H:%M:%S')"; redraw=1
+    last="$now"; ws_s="$(ws)"; cpu; cpu_s="$REPLY"; mem_s="$(mem)"; redraw=1
+  fi
+  if [[ "$nclk" != "$clk" ]]; then
+    clk="$nclk"; redraw=1
   fi
   if (( now >= next_wifi )); then
     nwifi="$(wifi)"; [[ "$nwifi" != "$wifi_s" ]] && redraw=1; wifi_s="$nwifi"; next_wifi=$((now + wifi_every))
