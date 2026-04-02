@@ -133,3 +133,16 @@ elif [[ -d "$nvim_config_dir/.git" ]]; then
 else
   printf 'Skipping kickstart install: %s already exists and is not a git repo\n' "$nvim_config_dir"
 fi
+
+# Build and install minibar (idempotent)
+minibar_src="${HOME}/.local/src/minibar"
+minibar_bin="${HOME}/.local/bin/minibar"
+
+if [[ -d "$minibar_src" ]]; then
+  install -d -m 0755 "${HOME}/.local/bin"
+  if [[ ! -x "$minibar_bin" ]] || find "$minibar_src" -type f -newer "$minibar_bin" | read -r _; then
+    cmake --preset release -S "$minibar_src" -B "$minibar_src/build/release"
+    cmake --build "$minibar_src/build/release" --parallel
+    install -Dm755 "$minibar_src/build/release/minibar" "$minibar_bin"
+  fi
+fi
