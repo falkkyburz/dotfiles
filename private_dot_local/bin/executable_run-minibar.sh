@@ -10,6 +10,11 @@ i_cpu='󰍛'
 i_mem='󰘚'
 i_bt='󰂱'
 i_bat='󰁹'
+i_music='󰝚'
+i_play='󰐊'
+i_pause='󰏤'
+i_prev='󰒮'
+i_next='󰒭'
 
 battery_icon() {
   local c="${1:-0}"
@@ -91,11 +96,6 @@ wifi() {
   fi
 }
 
-short() {
-  local s="$1" n="${2:-18}"
-  ((${#s} > n)) && printf '%s…' "${s:0:n-1}" || printf '%s' "$s"
-}
-
 pt=0
 pi=0
 cpu() {
@@ -109,10 +109,31 @@ cpu() {
   ((dt > 0)) && REPLY="cpu $(((dt - di) * 100 / dt))%" || REPLY='cpu ?'
 }
 
-ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; clk="$(date '+%a %Y-%m-%d %H:%M')"
+title() {
+  local info="$(hyprctl activewindow -j | jq -r '.title' 2>/dev/null)"
+  if [[ -n "$info" && "$info" != "null" ]]; then
+    printf '%s' "$info"
+  fi
+}
+
+media() {
+  local info="$(playerctl metadata --format '{{ artist }} - {{ title }}' 2>/dev/null)"
+  local status="$(playerctl status 2>/dev/null)"
+  if [[ -n "$info" && "$status" == "Playing" ]]; then
+    clean="$(printf '%s' "$info" | tr -cd '[:alpha:][:space:]-:')"
+    printf '%s %s' "$i_music" "$status: $clean"
+  fi
+}
+
+short() {
+  local s="$1" n="${2:-18}"
+  ((${#s} > n)) && printf '%s…' "${s:0:n-1}" || printf '%s' "$s"
+}
+
+  ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; tim="$(date '+%a %Y-%m-%d %H:%M')"; title_s="$(title)"; med_s="$(media)"
 cpu; cpu_s="$REPLY"
 wifi_every=15
-bat_every=30
+bat_every=5
 bt_every=5
 next_wifi=0
 next_bat=0
@@ -120,28 +141,35 @@ next_bt=0
 
 while true; do
   now="$(date +%s)"
-  nclk="$(date '+%a %Y-%m-%d %H:%M')"
+  ntim="$(date '+%a %Y-%m-%d %H:%M')"
   nw="$(ws)"
+
   if [[ "$nw" != "$ws_s" ]]; then
     ws_s="$nw"; redraw=1
   fi
+  # update workspace, cpu, memory
   if [[ "${last:-}" != "$now" ]]; then
-    last="$now"; ws_s="$(ws)"; cpu; cpu_s="$REPLY"; mem_s="$(mem)"; redraw=1
+    last="$now"; ws_s="$(ws)"; cpu; cpu_s="$REPLY"; mem_s="$(mem)"; med_s="$(media)"; title_s="$(title)"; redraw=1
   fi
-  if [[ "$nclk" != "$clk" ]]; then
-    clk="$nclk"; redraw=1
+  # update time
+  if [[ "$ntim" != "$tim" ]]; then
+    tim="$ntim"; redraw=1
   fi
+  # update network
   if (( now >= next_wifi )); then
     nwifi="$(wifi)"; [[ "$nwifi" != "$wifi_s" ]] && redraw=1; wifi_s="$nwifi"; next_wifi=$((now + wifi_every))
   fi
+  # update bluetooth
   if (( now >= next_bt )); then
     nbt="$(bt)"; [[ "$nbt" != "$bt_s" ]] && redraw=1; bt_s="$nbt"; next_bt=$((now + bt_every))
   fi
+  # update battery
   if (( now >= next_bat )); then
     nbat="$(bat)"; [[ "$nbat" != "$bat_s" ]] && redraw=1; bat_s="$nbat"; next_bat=$((now + bat_every))
   fi
+  # draw
   if (( ${redraw:-1} )); then
-    printf '%s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$clk" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$bt_s" "${bat_s#bat }"
+printf '%s %s %s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$bt_s" "${bat_s#bat }"
     redraw=0
   fi
   sleep 0.15

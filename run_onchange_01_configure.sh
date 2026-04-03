@@ -146,3 +146,8 @@ if [[ -d "$minibar_src" ]]; then
     install -Dm755 "$minibar_src/build/release/minibar" "$minibar_bin"
   fi
 fi
+
+# Fix thunar default terminal
+mkdir -p "$HOME/.config/xfce4"
+grep -qxF 'TerminalEmulator=kitty' "$HOME/.config/xfce4/helpers.rc" 2>/dev/null || \
+  printf 'TerminalEmulator=kitty\n' > "$HOME/.config/xfce4/helpers.rc"

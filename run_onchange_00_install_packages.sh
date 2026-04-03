@@ -25,7 +25,7 @@ PACMAN_PKGS=(
   slurp grim
 
   # files / disks / btrfs
-  nautilus udiskie btrfs-assistant samba gvfs-smb systemd-ukify
+  thunar udiskie btrfs-assistant samba gvfs-smb systemd-ukify
 
   # clipboard
   wl-clipboard cliphist
@@ -38,7 +38,7 @@ PACMAN_PKGS=(
   firefox chromium libfido2 speech-dispatcher
 
   # audio / video
-  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity
+  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity playerctl
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
