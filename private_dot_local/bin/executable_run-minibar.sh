@@ -15,6 +15,7 @@ i_play='󰐊'
 i_pause='󰏤'
 i_prev='󰒮'
 i_next='󰒭'
+i_net_off='󰤭'
 
 battery_icon() {
   local c="${1:-0}"
@@ -77,23 +78,69 @@ bt() {
   printf '%s' "${out:--}"
 }
 
+is_vpn_iface() {
+  local iface="${1:-}"
+  [[ "$iface" =~ ^(tun[0-9]*|tap[0-9]*|wg[0-9]*|ppp[0-9]*|nordlynx|tailscale0|zt[a-zA-Z0-9]+)$ ]]
+}
+
+non_vpn_default_dev() {
+  local dev metric
+  while IFS='|' read -r metric dev; do
+    [[ -z "${dev:-}" ]] && continue
+    if ! is_vpn_iface "$dev"; then
+      printf '%s' "$dev"
+      return
+    fi
+  done < <(
+    ip -4 route show table main default 2>/dev/null |
+      awk '{
+        d=""; m=0; has_m=0;
+        for(i=1;i<=NF;i++) {
+          if($i=="dev") d=$(i+1);
+          else if($i=="metric") { m=$(i+1); has_m=1; }
+        }
+        if(d!="") {
+          if(!has_m) m=0;
+          print m"|"d;
+        }
+      }' |
+      sort -t'|' -n -k1,1
+  )
+}
+
 wifi() {
-  local ssid sig icon='󰤮'
-  if ! command -v nmcli >/dev/null 2>&1; then printf '-'; return; fi
-  IFS='|' read -r ssid sig < <(nmcli -t -f ACTIVE,SSID,SIGNAL dev wifi list --rescan no 2>/dev/null |
-    awk -F: '$1=="yes"{print $2"|"$3; exit}')
-  if [[ -n "${ssid:-}" && "$sig" =~ ^[0-9]+$ ]]; then
-    ((sig < 20)) && icon='󰤯'
-    ((sig >= 20 && sig < 40)) && icon='󰤟'
-    ((sig >= 40 && sig < 60)) && icon='󰤢'
-    ((sig >= 60 && sig < 80)) && icon='󰤥'
-    ((sig >= 80)) && icon='󰤨'
-    printf '%s %s' "$icon" "$ssid"
-  elif nmcli -t -f DEVICE,TYPE,STATE dev status 2>/dev/null | awk -F: '$2=="ethernet"&&$3=="connected"{f=1} END{exit !f}'; then
-    printf '󰈀 Ethernet'
-  else
-    printf '%s' "$icon"
+  local route_dev src ssid sig ip icon='󰤮' vpn_suffix='' display_dev
+  IFS='|' read -r route_dev src < <(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++){if($i=="dev")d=$(i+1); else if($i=="src")s=$(i+1)} if(d!="") print d"|"s; exit}')
+  if [[ -z "${route_dev:-}" ]]; then
+    printf '%s' "$i_net_off"
+    return
   fi
+
+  display_dev="$route_dev"
+  if is_vpn_iface "$route_dev"; then
+    vpn_suffix=' (vpn)'
+    display_dev="$(non_vpn_default_dev)"
+    [[ -z "${display_dev:-}" ]] && display_dev="$route_dev"
+  fi
+
+  if [[ -d "/sys/class/net/$display_dev/wireless" ]]; then
+    if ! command -v nmcli >/dev/null 2>&1; then printf '%s%s' "$icon" "$vpn_suffix"; return; fi
+    ssid="$(nmcli -g GENERAL.CONNECTION device show "$display_dev" 2>/dev/null | awk 'NR==1{print; exit}')"
+    sig="$(nmcli -t -f IN-USE,SIGNAL dev wifi list ifname "$display_dev" --rescan no 2>/dev/null | awk -F: '$1=="*"{print $2; exit}')"
+    if [[ -n "${ssid:-}" && "$sig" =~ ^[0-9]+$ ]]; then
+      ((sig < 20)) && icon='󰤯'
+      ((sig >= 20 && sig < 40)) && icon='󰤟'
+      ((sig >= 40 && sig < 60)) && icon='󰤢'
+      ((sig >= 60 && sig < 80)) && icon='󰤥'
+      ((sig >= 80)) && icon='󰤨'
+      printf '%s %s%s' "$icon" "$ssid" "$vpn_suffix"
+    else
+      printf '%s%s' "$icon" "$vpn_suffix"
+    fi
+    return
+  fi
+  ip="${src:-$(ip -4 -o addr show dev "$route_dev" scope global 2>/dev/null | awk 'NR==1{split($4,a,"/"); print a[1]}')}"
+  [[ -n "${ip:-}" ]] && printf '󰈀 %s%s' "$ip" "$vpn_suffix" || printf '󰈀 %s%s' "$display_dev" "$vpn_suffix"
 }
 
 pt=0
@@ -169,7 +216,7 @@ while true; do
   fi
   # draw
   if (( ${redraw:-1} )); then
-printf '%s %s %s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$bt_s" "${bat_s#bat }"
+printf '%s %s %s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 18)" "$i_bt" "$(short "$bt_s" 40)" "${bat_s#bat }"
     redraw=0
   fi
   sleep 0.15

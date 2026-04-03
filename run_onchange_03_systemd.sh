@@ -106,6 +106,7 @@ main() {
   SYSTEM_UNITS=(
     bluetooth.service
     docker.service
+    nordvpnd.service
   )
 
   if pacman -Q networkmanager >/dev/null 2>&1; then

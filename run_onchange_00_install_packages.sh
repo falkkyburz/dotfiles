@@ -70,6 +70,7 @@ AUR_PKGS=(
   opencode
   unixcw
   neovim-git
+  nordvpn-bin
 )
 
 install_pacman() {
