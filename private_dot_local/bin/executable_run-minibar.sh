@@ -9,24 +9,43 @@ fi
 i_cpu='󰍛'
 i_mem='󰘚'
 i_bt='󰂱'
-i_bat='󰁹'
 i_music='󰝚'
-i_play='󰐊'
-i_pause='󰏤'
-i_prev='󰒮'
-i_next='󰒭'
 i_net_off='󰤭'
-i_sep='\x1f'
+i_net_wifi_0='󰤯'
+i_net_wifi_1='󰤟'
+i_net_wifi_2='󰤢'
+i_net_wifi_3='󰤥'
+i_net_wifi_4='󰤨'
+i_net_wifi='󰤮'
+i_net_eth='󰈀'
+i_vpn='󰦝'
 
 c_red='#ff5f56'
-c_yellow='#f4bf75'
-c_green='#8ec07c'
+
+field_sep=$'\x1e'
 
 battery_icon() {
-  local c="${1:-0}"
+  local status="${1:-Unknown}"
+  local c="${2:-0}"
+
   [[ "$c" =~ ^[0-9]+$ ]] || c=0
   ((c < 0)) && c=0
   ((c > 100)) && c=100
+
+  if [[ "$status" == "Charging" ]]; then
+    ((c <= 10)) && { printf '󰢜'; return; }
+    ((c <= 20)) && { printf '󰂆'; return; }
+    ((c <= 30)) && { printf '󰂇'; return; }
+    ((c <= 40)) && { printf '󰂈'; return; }
+    ((c <= 50)) && { printf '󰢝'; return; }
+    ((c <= 60)) && { printf '󰂉'; return; }
+    ((c <= 70)) && { printf '󰂊'; return; }
+    ((c <= 80)) && { printf '󰂋'; return; }
+    ((c <= 90)) && { printf '󰂌'; return; }
+    printf '󰂅'
+    return
+  fi
+
   ((c <= 5)) && { printf '󰂎'; return; }
   ((c <= 15)) && { printf '󰁺'; return; }
   ((c <= 25)) && { printf '󰁻'; return; }
@@ -43,8 +62,9 @@ battery_icon() {
 ws() {
   local l id
   IFS= read -r l < <(hyprctl activeworkspace 2>/dev/null || true)
-  id="${l#workspace ID }"; id="${id%% *}"
-  [[ "$id" =~ ^[0-9]+$ ]] && printf '[%s]' "$id" || printf '[?]'
+  id="${l#workspace ID }"
+  id="${id%% *}"
+  [[ "$id" =~ ^[0-9]+$ ]] && printf '%s' "$id" || printf '?'
 }
 
 mem() {
@@ -53,44 +73,42 @@ mem() {
     [[ "$k" == "MemTotal:" ]] && total=$v
     [[ "$k" == "MemAvailable:" ]] && avail=$v
   done < /proc/meminfo
-  used=$((total - avail)); pct=$((used * 100 / total))
-  printf 'ram %s%%' "$pct"
+
+  if ((total > 0)); then
+    used=$((total - avail))
+    pct=$((used * 100 / total))
+    printf '%s' "$pct"
+    return
+  fi
+
+  printf '?'
 }
 
 bat() {
-  local b c s icon src
+  local b c s
   for b in /sys/class/power_supply/BAT*; do
     [[ -d "$b" ]] || continue
     read -r c < "$b/capacity" || continue
-    read -r s < "$b/status" || s="?"
-    icon="$(battery_icon "$c")"
-    if [[ "$s" == Charging ]]; then
-      printf 'bat ↯%s %s%% %s' "$icon" "$c"
-    else
-      printf 'bat %s %s%% %s' "$icon" "$c"
-    fi
+    read -r s < "$b/status" || s='Unknown'
+    printf '%s%s%s' "$s" "$field_sep" "$c"
     return
   done
-  printf 'bat n/a'
+
+  printf 'n/a%s?' "$field_sep"
 }
 
 bt() {
-  local _ mac name out=""
+  local _ mac name out=''
   while read -r _ mac name; do
     [[ -z "$name" ]] && continue
     out+="${out:+, }$name"
   done < <(bluetoothctl devices Connected 2>/dev/null || true)
-  printf '%s' "${out:--}"
+  printf '%s' "$out"
 }
 
 nmcli_net_state() {
   nmcli -t -f GENERAL.DEVICE,GENERAL.TYPE,GENERAL.STATE,GENERAL.CONNECTION,IP4.ADDRESS,IP4.ROUTE device show 2>/dev/null |
     awk -F: '
-      function trim(s) {
-        gsub(/^[[:space:]]+/, "", s)
-        gsub(/[[:space:]]+$/, "", s)
-        return s
-      }
       function first_ipv4(s,    a) {
         split(s, a, "/")
         return a[1]
@@ -176,35 +194,22 @@ nmcli_net_state() {
     '
 }
 
-wifi() {
-  local net_type ssid ip dev vpn sig icon='󰤮' vpn_suffix=''
-  IFS='|' read -r net_type ssid ip dev vpn < <(nmcli_net_state)
+net() {
+  local net_type conn ip dev vpn sig=''
+  IFS='|' read -r net_type conn ip dev vpn < <(nmcli_net_state)
+
   if [[ -z "${net_type:-}" ]]; then
-    printf '%s' "$i_net_off"
+    printf 'offline%s%s%s%s%s%s' "$field_sep" "$field_sep" "$field_sep" "$field_sep" "$field_sep" "$field_sep"
     return
   fi
 
-  [[ "${vpn:-0}" == "1" ]] && vpn_suffix='(vpn)'
-
-  if [[ "$net_type" == "wifi" ]]; then
+  if [[ "$net_type" == 'wifi' ]]; then
     sig="$(nmcli -t -f IN-USE,SIGNAL dev wifi list ifname "$dev" --rescan no 2>/dev/null | awk -F: '$1=="*"{print $2; exit}')"
-    if [[ "$sig" =~ ^[0-9]+$ ]]; then
-      ((sig < 20)) && icon='󰤯'
-      ((sig >= 20 && sig < 40)) && icon='󰤟'
-      ((sig >= 40 && sig < 60)) && icon='󰤢'
-      ((sig >= 60 && sig < 80)) && icon='󰤥'
-      ((sig >= 80)) && icon='󰤨'
-    fi
-    [[ -n "${ssid:-}" ]] && printf '%s %s %s' "$icon" "$vpn_suffix" "$ssid" || printf '%s %s' "$icon" "$vpn_suffix"
-    return
   fi
 
-  if [[ "$net_type" == "ethernet" ]]; then
-    [[ -n "${ip:-}" ]] && printf '󰈀 %s %s' "$vpn_suffix" "$ip" || printf '󰈀 %s %s' "$vpn_suffix" "$dev"
-    return
-  fi
-
-  printf '%s' "$i_net_off"
+  printf '%s%s%s%s%s%s%s%s%s%s%s' \
+    "$net_type" "$field_sep" "${conn:-}" "$field_sep" "${ip:-}" "$field_sep" \
+    "${dev:-}" "$field_sep" "${vpn:-0}" "$field_sep" "${sig:-}"
 }
 
 pt=0
@@ -214,36 +219,47 @@ cpu() {
   read -r _ u n s i w irq sirq st g gn < /proc/stat
   total=$((u + n + s + i + w + irq + sirq + st + g + gn))
   if ((pt == 0)); then
-    pt=$total; pi=$i; REPLY='cpu 0%'; return
+    pt=$total
+    pi=$i
+    REPLY='0'
+    return
   fi
-  dt=$((total - pt)); di=$((i - pi)); pt=$total; pi=$i
-  ((dt > 0)) && REPLY="cpu $(((dt - di) * 100 / dt))%" || REPLY='cpu ?'
+  dt=$((total - pt))
+  di=$((i - pi))
+  pt=$total
+  pi=$i
+  if ((dt > 0)); then
+    REPLY="$(((dt - di) * 100 / dt))"
+  else
+    REPLY='?'
+  fi
 }
 
 title() {
-  local info="$(hyprctl activewindow -j | jq -r '.title' 2>/dev/null)"
-  if [[ -n "$info" && "$info" != "null" ]]; then
+  local info
+  info="$(hyprctl activewindow -j | jq -r '.title' 2>/dev/null)"
+  if [[ -n "$info" && "$info" != 'null' ]]; then
     printf '%s' "$info"
   fi
 }
 
 media() {
-  local info="$(playerctl metadata --format '{{ artist }} - {{ title }}' 2>/dev/null)"
-  local status="$(playerctl status 2>/dev/null)"
-  if [[ -n "$info" && "$status" == "Playing" ]]; then
-    clean="$(printf '%s' "$info" | tr -cd '[:alpha:][:space:]-:')"
-    printf '%s %s' "$i_music" "$status: $clean"
+  local info status
+  info="$(playerctl metadata --format '{{ artist }} - {{ title }}' 2>/dev/null)"
+  status="$(playerctl status 2>/dev/null)"
+  if [[ -n "$info" && "$status" == 'Playing' ]]; then
+    printf '%s' "$info"
   fi
 }
 
 short() {
   local s="$1" n="${2:-18}"
   s="${s//$'\n'/ }"
-  s="${s//|//}"
+  s="${s//$'\x1f'/ }"
+  s="${s//$'\x1e'/ }"
   ((${#s} > n)) && printf '%s…' "${s:0:n-1}" || printf '%s' "$s"
 }
 
-# dont run on text with markup
 sanitize() {
   local s=$1
   s=${s//&/&amp;}
@@ -252,6 +268,7 @@ sanitize() {
   s=${s//\"/&quot;}
   s=${s//\'/&apos;}
   s=${s//$'\x1f'/ }
+  s=${s//$'\x1e'/ }
   printf '%s' "$s"
 }
 
@@ -261,75 +278,133 @@ markup() {
   printf '<span foreground="%s">%s</span>' "$color" "$(sanitize "$text")"
 }
 
-title_seg() {
-  sanitize "$(short "${1:-}" 40)"
+join_nonempty() {
+  local part out=''
+  for part in "$@"; do
+    [[ -n "$part" ]] || continue
+    out+="${out:+ }$part"
+  done
+  printf '%s' "$out"
 }
 
-media_seg() {
-  sanitize "$(short "${1:-}" 40)"
+seg_ws() {
+  printf '[%s]' "$(sanitize "${1:-?}")"
 }
 
-wifi_seg() {
-  local raw
-  raw="$(short "${1:-}" 24)"
+seg_title() {
+  local raw="${1:-}"
+  [[ -n "$raw" ]] || return
+  printf '%s' "$(sanitize "$(short "$raw" 40)")"
+}
 
-  if [[ "$raw" == "$i_net_off" ]]; then
-    markup "$c_red" "$raw"
+seg_media() {
+  local raw="${1:-}"
+  [[ -n "$raw" ]] || return
+  printf '%s %s' "$i_music" "$(sanitize "$(short "$raw" 40)")"
+}
+
+seg_net() {
+  local raw="${1:-}"
+  local net_type conn ip dev vpn sig icon text body
+
+  IFS="$field_sep" read -r net_type conn ip dev vpn sig <<< "$raw"
+
+  if [[ "$net_type" == 'offline' || -z "$net_type" ]]; then
+    printf '%s %s' "$(markup "$c_red" "$i_net_off")" 'offline'
     return
   fi
 
-  sanitize "$raw"
-}
-
-bt_seg() {
-  sanitize "$(short "${1:-}" 40)"
-}
-
-cpu_seg() {
-  local raw="${1#cpu }"
-  local pct="${raw%\%}"
-
-  if [[ "$pct" =~ ^[0-9]+$ ]] && ((pct > 95)); then
-    markup "$c_red" "$raw"
-    return
-  fi
-
-  sanitize "$raw"
-}
-
-mem_seg() {
-  local raw="${1#ram }"
-  local pct="${raw%\%}"
-
-  if [[ "$pct" =~ ^[0-9]+$ ]] && ((pct > 95)); then
-    markup "$c_red" "$raw"
-    return
-  fi
-
-  sanitize "$raw"
-}
-
-bat_seg() {
-  local raw="${1#bat }"
-  local cap
-
-  if [[ "$raw" =~ ([0-9]+)% ]]; then
-    cap="${BASH_REMATCH[1]}"
-    if ((cap < 10)); then
-      markup "$c_red" "$raw"
-      return
+  if [[ "$net_type" == 'wifi' ]]; then
+    icon="$i_net_wifi"
+    if [[ "$sig" =~ ^[0-9]+$ ]]; then
+      ((sig < 20)) && icon="$i_net_wifi_0"
+      ((sig >= 20 && sig < 40)) && icon="$i_net_wifi_1"
+      ((sig >= 40 && sig < 60)) && icon="$i_net_wifi_2"
+      ((sig >= 60 && sig < 80)) && icon="$i_net_wifi_3"
+      ((sig >= 80)) && icon="$i_net_wifi_4"
     fi
+    text="${conn:-$dev}"
+  else
+    icon="$i_net_eth"
+    text="${ip:-$dev}"
   fi
 
-  sanitize "$raw"
+  text="$(short "$text" 24)"
+  body="$icon"
+  [[ "${vpn:-0}" == '1' ]] && body+=" $i_vpn"
+  if [[ -n "$text" ]]; then
+    body+=" $(sanitize "$text")"
+  fi
+  printf '%s' "$body"
 }
 
-  ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; tim="$(date '+%a %Y-%m-%d %H:%M')"; title_s="$(title)"; med_s="$(media)"
-cpu; cpu_s="$REPLY"
-wifi_every=15
+seg_bt() {
+  local raw="${1:-}"
+  [[ -n "$raw" ]] || return
+  printf '%s %s' "$i_bt" "$(sanitize "$(short "$raw" 40)")"
+}
+
+seg_cpu() {
+  local raw="${1:-?}"
+
+  if [[ "$raw" =~ ^[0-9]+$ ]] && ((raw > 95)); then
+    printf '%s %s%%' "$(markup "$c_red" "$i_cpu")" "$(sanitize "$raw")"
+    return
+  fi
+
+  printf '%s %s%%' "$i_cpu" "$(sanitize "$raw")"
+}
+
+seg_mem() {
+  local raw="${1:-?}"
+
+  if [[ "$raw" =~ ^[0-9]+$ ]] && ((raw > 95)); then
+    printf '%s %s%%' "$(markup "$c_red" "$i_mem")" "$(sanitize "$raw")"
+    return
+  fi
+
+  printf '%s %s%%' "$i_mem" "$(sanitize "$raw")"
+}
+
+seg_bat() {
+  local raw="${1:-}"
+  local status cap icon
+
+  IFS="$field_sep" read -r status cap <<< "$raw"
+  if [[ "$status" == 'n/a' || -z "$cap" ]]; then
+    printf '%s %s' '󰁹' "$(sanitize 'n/a')"
+    return
+  fi
+
+  icon="$(battery_icon "$status" "$cap")"
+
+  if [[ "$cap" =~ ^[0-9]+$ ]] && ((cap < 10)); then
+    printf '%s %s%%' "$(markup "$c_red" "$icon")" "$(sanitize "$cap")"
+    return
+  fi
+
+  printf '%s %s%%' "$icon" "$(sanitize "$cap")"
+}
+
+seg_time() {
+  printf '%s' "$(sanitize "${1:-}")"
+}
+
+ws_s="$(ws)"
+mem_s="$(mem)"
+net_s="$(net)"
+bt_s="$(bt)"
+bat_s="$(bat)"
+tim="$(date '+%a %Y-%m-%d %H:%M')"
+title_s="$(title)"
+med_s="$(media)"
+cpu
+cpu_s="$REPLY"
+
+net_every=15
 bat_every=5
 bt_every=5
-next_wifi=0
+next_net=0
 next_bat=0
 next_bt=0
 
@@ -339,32 +414,54 @@ while true; do
   nw="$(ws)"
 
   if [[ "$nw" != "$ws_s" ]]; then
-    ws_s="$nw"; redraw=1
+    ws_s="$nw"
+    redraw=1
   fi
-  # update workspace, cpu, memory
+
   if [[ "${last:-}" != "$now" ]]; then
-    last="$now"; ws_s="$(ws)"; cpu; cpu_s="$REPLY"; mem_s="$(mem)"; med_s="$(media)"; title_s="$(title)"; redraw=1
+    last="$now"
+    ws_s="$(ws)"
+    cpu
+    cpu_s="$REPLY"
+    mem_s="$(mem)"
+    med_s="$(media)"
+    title_s="$(title)"
+    redraw=1
   fi
-  # update time
+
   if [[ "$ntim" != "$tim" ]]; then
-    tim="$ntim"; redraw=1
+    tim="$ntim"
+    redraw=1
   fi
-  # update network
-  if (( now >= next_wifi )); then
-    nwifi="$(wifi)"; [[ "$nwifi" != "$wifi_s" ]] && redraw=1; wifi_s="$nwifi"; next_wifi=$((now + wifi_every))
+
+  if (( now >= next_net )); then
+    nnet="$(net)"
+    [[ "$nnet" != "$net_s" ]] && redraw=1
+    net_s="$nnet"
+    next_net=$((now + net_every))
   fi
-  # update bluetooth
+
   if (( now >= next_bt )); then
-    nbt="$(bt)"; [[ "$nbt" != "$bt_s" ]] && redraw=1; bt_s="$nbt"; next_bt=$((now + bt_every))
+    nbt="$(bt)"
+    [[ "$nbt" != "$bt_s" ]] && redraw=1
+    bt_s="$nbt"
+    next_bt=$((now + bt_every))
   fi
-  # update battery
+
   if (( now >= next_bat )); then
-    nbat="$(bat)"; [[ "$nbat" != "$bat_s" ]] && redraw=1; bat_s="$nbat"; next_bat=$((now + bat_every))
+    nbat="$(bat)"
+    [[ "$nbat" != "$bat_s" ]] && redraw=1
+    bat_s="$nbat"
+    next_bat=$((now + bat_every))
   fi
-  # draw
+
   if (( ${redraw:-1} )); then
-printf '%s %s %s\x1f%s\x1f%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(title_seg "$title_s")" "$(media_seg "$med_s")" "$tim" "$i_cpu" "$(cpu_seg "$cpu_s")" "$i_mem" "$(mem_seg "$mem_s")" "$(wifi_seg "$wifi_s")" "$i_bt" "$(bt_seg "$bt_s")" "$i_bat" "$(bat_seg "$bat_s")"
+    printf '%s\x1f%s\x1f%s\n' \
+      "$(join_nonempty "$(seg_ws "$ws_s")" "$(seg_title "$title_s")" "$(seg_media "$med_s")")" \
+      "$(seg_time "$tim")" \
+      "$(join_nonempty "$(seg_cpu "$cpu_s")" "$(seg_mem "$mem_s")" "$(seg_net "$net_s")" "$(seg_bt "$bt_s")" "$(seg_bat "$bat_s")")"
     redraw=0
   fi
+
   sleep 0.15
 done | minibar
