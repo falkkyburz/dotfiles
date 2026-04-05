@@ -18,6 +18,10 @@ i_next='󰒭'
 i_net_off='󰤭'
 i_sep='\x1f'
 
+c_red='#ff5f56'
+c_yellow='#f4bf75'
+c_green='#8ec07c'
+
 battery_icon() {
   local c="${1:-0}"
   [[ "$c" =~ ^[0-9]+$ ]] || c=0
@@ -254,7 +258,70 @@ sanitize() {
 markup() {
   local color=$1
   local text=$2
-  printf '<span foreground="%s">%s</span>' "$color" "$(escape_minibar_text "$text")"
+  printf '<span foreground="%s">%s</span>' "$color" "$(sanitize "$text")"
+}
+
+title_seg() {
+  sanitize "$(short "${1:-}" 40)"
+}
+
+media_seg() {
+  sanitize "$(short "${1:-}" 40)"
+}
+
+wifi_seg() {
+  local raw
+  raw="$(short "${1:-}" 24)"
+
+  if [[ "$raw" == "$i_net_off" ]]; then
+    markup "$c_red" "$raw"
+    return
+  fi
+
+  sanitize "$raw"
+}
+
+bt_seg() {
+  sanitize "$(short "${1:-}" 40)"
+}
+
+cpu_seg() {
+  local raw="${1#cpu }"
+  local pct="${raw%\%}"
+
+  if [[ "$pct" =~ ^[0-9]+$ ]] && ((pct > 95)); then
+    markup "$c_red" "$raw"
+    return
+  fi
+
+  sanitize "$raw"
+}
+
+mem_seg() {
+  local raw="${1#ram }"
+  local pct="${raw%\%}"
+
+  if [[ "$pct" =~ ^[0-9]+$ ]] && ((pct > 95)); then
+    markup "$c_red" "$raw"
+    return
+  fi
+
+  sanitize "$raw"
+}
+
+bat_seg() {
+  local raw="${1#bat }"
+  local cap
+
+  if [[ "$raw" =~ ([0-9]+)% ]]; then
+    cap="${BASH_REMATCH[1]}"
+    if ((cap < 10)); then
+      markup "$c_red" "$raw"
+      return
+    fi
+  fi
+
+  sanitize "$raw"
 }
 
   ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; tim="$(date '+%a %Y-%m-%d %H:%M')"; title_s="$(title)"; med_s="$(media)"
@@ -296,7 +363,7 @@ while true; do
   fi
   # draw
   if (( ${redraw:-1} )); then
-printf '%s %s %s\x1f%s\x1f%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 24)" "$i_bt" "$(short "$bt_s" 40)" "${bat_s#bat }"
+printf '%s %s %s\x1f%s\x1f%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(title_seg "$title_s")" "$(media_seg "$med_s")" "$tim" "$i_cpu" "$(cpu_seg "$cpu_s")" "$i_mem" "$(mem_seg "$mem_s")" "$(wifi_seg "$wifi_s")" "$i_bt" "$(bt_seg "$bt_s")" "$i_bat" "$(bat_seg "$bat_s")"
     redraw=0
   fi
   sleep 0.15

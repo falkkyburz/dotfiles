@@ -107,7 +107,7 @@ static bool make_buffer(App& a, int w, int h) {
 
 static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, int scale) {
     PangoLayout* layout = pango_cairo_create_layout(cr);
-    pango_layout_set_text(layout, text.c_str(), -1);
+    pango_layout_set_markup(layout, text.c_str(), -1);
 
     std::string font_str = "Noto Sans Mono " + std::to_string(10 * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
@@ -125,7 +125,7 @@ static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, in
 
 static int text_width(cairo_t* cr, const std::string& text, int scale) {
     PangoLayout* layout = pango_cairo_create_layout(cr);
-    pango_layout_set_text(layout, text.c_str(), -1);
+    pango_layout_set_markup(layout, text.c_str(), -1);
     std::string font_str = "Noto Sans Mono " + std::to_string(10 * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
     pango_layout_set_font_description(layout, font);
