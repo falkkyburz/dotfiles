@@ -1,6 +1,7 @@
 [Added Associations]
 image/png=gwenview-2.desktop;gwenview.desktop;
 application/x-extension-fcstd=org.freecad.FreeCAD.desktop;
+application/x-shellscript=kitty-open.desktop;nvim.desktop;
 
 [Default Applications]
 text/html=firefox.desktop

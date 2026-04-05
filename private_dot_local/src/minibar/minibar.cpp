@@ -432,8 +432,8 @@ int main() {
                     a.center.clear();
                     a.right.clear();
                 } else {
-                    size_t p1 = line.find('|');
-                    size_t p2 = (p1 == std::string::npos) ? std::string::npos : line.find('|', p1 + 1);
+                    size_t p1 = line.find('\x1f');
+                    size_t p2 = (p1 == std::string::npos) ? std::string::npos : line.find('\x1f', p1 + 1);
                     bool split = p1 != std::string::npos && p2 != std::string::npos;
                     a.left = split ? line.substr(0, p1) : line;
                     a.center = split ? line.substr(p1 + 1, p2 - p1 - 1) : "";

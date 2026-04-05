@@ -16,6 +16,7 @@ i_pause='󰏤'
 i_prev='󰒮'
 i_next='󰒭'
 i_net_off='󰤭'
+i_sep='\x1f'
 
 battery_icon() {
   local c="${1:-0}"
@@ -238,6 +239,24 @@ short() {
   ((${#s} > n)) && printf '%s…' "${s:0:n-1}" || printf '%s' "$s"
 }
 
+# dont run on text with markup
+sanitize() {
+  local s=$1
+  s=${s//&/&amp;}
+  s=${s//</&lt;}
+  s=${s//>/&gt;}
+  s=${s//\"/&quot;}
+  s=${s//\'/&apos;}
+  s=${s//$'\x1f'/ }
+  printf '%s' "$s"
+}
+
+markup() {
+  local color=$1
+  local text=$2
+  printf '<span foreground="%s">%s</span>' "$color" "$(escape_minibar_text "$text")"
+}
+
   ws_s="$(ws)"; mem_s="$(mem)"; wifi_s="$(wifi)"; bt_s="$(bt)"; bat_s="$(bat)"; tim="$(date '+%a %Y-%m-%d %H:%M')"; title_s="$(title)"; med_s="$(media)"
 cpu; cpu_s="$REPLY"
 wifi_every=15
@@ -277,7 +296,7 @@ while true; do
   fi
   # draw
   if (( ${redraw:-1} )); then
-printf '%s %s %s|%s|%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 24)" "$i_bt" "$(short "$bt_s" 40)" "${bat_s#bat }"
+printf '%s %s %s\x1f%s\x1f%s %s  %s %s  %s  %s %s  %s %s\n' "$ws_s" "$(short "$title_s" 40)" "$(short "$med_s" 40)" "$tim" "$i_cpu" "${cpu_s#cpu }" "$i_mem" "${mem_s#ram }" "$(short "$wifi_s" 24)" "$i_bt" "$(short "$bt_s" 40)" "${bat_s#bat }"
     redraw=0
   fi
   sleep 0.15

@@ -32,7 +32,7 @@ PACMAN_PKGS=(
 
   # fonts
   noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-liberation 
-  cantarell-fonts nwg-look ttf-nerd-fonts-symbols-mono
+  cantarell-fonts nwg-look ttf-nerd-fonts-symbols-mono font-manager
 
   # browsers
   firefox chromium libfido2 speech-dispatcher
@@ -71,6 +71,7 @@ AUR_PKGS=(
   unixcw
   neovim-git
   nordvpn-bin
+  qutebrowser-git
 )
 
 install_pacman() {
