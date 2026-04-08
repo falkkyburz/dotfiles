@@ -48,7 +48,8 @@ PACMAN_PKGS=(
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
   # development
-  gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo
+  gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo sqlite postgresql
+  qalculate-gtk libqalculate gnuplot
 
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
