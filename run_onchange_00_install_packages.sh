@@ -60,6 +60,9 @@ PACMAN_PKGS=(
   # Docker / VM
   docker docker-compose docker-buildx lazydocker
   qemu-desktop libvirt dnsmasq virt-viewer
+
+  # security
+  nftables
 )
 
 AUR_PKGS=(

@@ -104,6 +104,7 @@ main() {
   fi
 
   SYSTEM_UNITS=(
+    nftables.service
     bluetooth.service
     docker.service
     nordvpnd.service

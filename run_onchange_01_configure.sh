@@ -44,6 +44,51 @@ fi
 
 rm -f "$tmp"
 
+# Configure firewall -> Make nftables config file. 
+# Uncomment the sshd line to allow incoming ssh sessions.
+tmp="$(mktemp)"
+cat >"$tmp" <<'EOF'
+#!/usr/bin/nft -f
+# vim:set ts=2 sw=2 et:
+
+# IPv4/IPv6 Simple & Safe firewall ruleset.
+# More examples in /usr/share/nftables/ and /usr/share/doc/nftables/examples/.
+
+flush ruleset
+table inet filter {
+  chain input {
+    type filter hook input priority filter
+    policy drop
+
+    ct state invalid drop comment "early drop of invalid connections"
+    ct state {established, related} accept comment "allow tracked connections"
+    iif lo accept comment "allow from loopback"
+    meta l4proto { icmp, icmpv6 } accept comment "allow icmp"
+    #tcp dport ssh accept comment "allow sshd"
+    pkttype host limit rate 5/second counter reject with icmpx type admin-prohibited
+    counter
+  }
+  chain forward {
+    type filter hook forward priority filter
+    policy drop
+  }
+  chain output {
+    type filter hook output priority filter
+    policy accept
+  }
+}
+EOF
+
+if ! sudo cmp -s "$tmp" /etc/nftables.conf 2>/dev/null; then
+  sudo install -Dm644 "$tmp" /etc/nftables.conf
+fi
+
+rm -f "$tmp"
+
+sudo nft -c -f /etc/nftables.conf
+sudo nft -f /etc/nftables.conf
+sudo nft list ruleset >/dev/null
+
 # Provision systemd-boot UKI paths and mkinitcpio preset
 sudo install -d -m 0755 /boot/EFI/Linux
 sudo install -d -m 0755 /etc/kernel
