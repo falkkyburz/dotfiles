@@ -33,6 +33,7 @@ PACMAN_PKGS=(
   # fonts
   noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-liberation 
   cantarell-fonts nwg-look ttf-nerd-fonts-symbols-mono font-manager
+  ttf-dejavu-nerd
 
   # browsers
   firefox chromium libfido2 speech-dispatcher

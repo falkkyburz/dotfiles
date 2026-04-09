@@ -166,19 +166,6 @@ if command -v zsh >/dev/null 2>&1; then
   fi
 fi
 
-# Install kickstart.nvim once
-nvim_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
-if [[ ! -e "$nvim_config_dir" ]]; then
-  git clone https://github.com/nvim-lua/kickstart.nvim.git "$nvim_config_dir"
-elif [[ -d "$nvim_config_dir/.git" ]]; then
-  current_remote="$(git -C "$nvim_config_dir" remote get-url origin 2>/dev/null || true)"
-  if [[ "$current_remote" != "https://github.com/nvim-lua/kickstart.nvim.git" ]]; then
-    printf 'Skipping kickstart install: %s already tracks %s\n' "$nvim_config_dir" "$current_remote"
-  fi
-else
-  printf 'Skipping kickstart install: %s already exists and is not a git repo\n' "$nvim_config_dir"
-fi
-
 # Build and install minibar (idempotent)
 minibar_src="${HOME}/.local/src/minibar"
 minibar_bin="${HOME}/.local/bin/minibar"
