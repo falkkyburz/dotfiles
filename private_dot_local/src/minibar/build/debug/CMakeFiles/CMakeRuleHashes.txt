@@ -1,0 +1,6 @@
+# Hashes of file build rules.
+37a0e88b699c0b8f46331f62e8ec68e8 CMakeFiles/protocol_bindings
+b91affac9fc2949f4de7942577149d34 wlr-layer-shell-unstable-v1-client-protocol.h
+b0f2244f24a639eec91b03d2676065dc wlr-layer-shell-unstable-v1-protocol.c
+c9db36af948472885889c430dd679e40 xdg-shell-client-protocol.h
+aec2f58c6f027ac9a9cf9325a07efbe1 xdg-shell-protocol.c

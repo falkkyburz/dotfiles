@@ -91,6 +91,9 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+-- Show tabline
+vim.o.showtabline = 2
+
 -- }}}
 
 -- {{{ Basic Keymaps

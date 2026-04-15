@@ -19,6 +19,9 @@
 #include <cairo/cairo.h>
 #include <pango/pangocairo.h>
 
+// Wayland shared-memory buffers are the bridge between our CPU-side drawing
+// and the compositor. Cairo renders into `data`, and `wl` is the Wayland
+// object attached to the surface for presentation.
 struct Buffer {
     wl_buffer* wl = nullptr;
     void* data = nullptr;
@@ -26,6 +29,9 @@ struct Buffer {
     int w = 0, h = 0, stride = 0, size = 0;
 };
 
+// `App` keeps all long-lived Wayland objects and the current bar state in one
+// place. This program is small enough that a single state struct keeps the
+// control flow easier to follow than splitting things into classes.
 struct App {
     wl_display* display = nullptr;
     wl_registry* registry = nullptr;
@@ -55,7 +61,12 @@ struct App {
     std::string right = "--:--";
 };
 
+constexpr char kSectionSeparator = '\x1f';
+
 static int create_shm_file(size_t size) {
+    // Wayland shm buffers need a file descriptor the compositor can also map.
+    // `memfd_create` is the cleanest option when available; the mkstemp path is
+    // a portable fallback.
 #ifdef MFD_CLOEXEC
     {
         int fd = memfd_create("minibar", MFD_CLOEXEC);
@@ -84,6 +95,8 @@ static void destroy_buffer(Buffer& b) {
 }
 
 static bool make_buffer(App& a, int w, int h) {
+    // Recreate the backing store whenever the logical bar size or buffer scale
+    // changes. The compositor sees the wl_buffer; Cairo sees the mmap'd memory.
     destroy_buffer(a.buf);
     a.buf.w = w;
     a.buf.h = h;
@@ -106,10 +119,12 @@ static bool make_buffer(App& a, int w, int h) {
 }
 
 static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, int scale) {
+    // Pango handles text shaping and markup, then Cairo paints the prepared
+    // layout into the shared-memory image.
     PangoLayout* layout = pango_cairo_create_layout(cr);
     pango_layout_set_markup(layout, text.c_str(), -1);
 
-    std::string font_str = "Noto Sans Mono " + std::to_string(10 * scale);
+    std::string font_str = "NotoSansM Nerd Font " + std::to_string(10 * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
     pango_layout_set_font_description(layout, font);
 
@@ -137,6 +152,8 @@ static int text_width(cairo_t* cr, const std::string& text, int scale) {
 }
 
 static int choose_buffer_scale(const App& a) {
+    // The compositor reports an output scale, but we allow an override because
+    // tiny bars often look sharper if rendered into a denser buffer.
     if (const char* env = std::getenv("MINIBAR_BUFFER_SCALE")) {
         int s = std::atoi(env);
         if (s > 0) return s;
@@ -158,13 +175,18 @@ static void set_bar_visible(App& a, bool visible) {
 
     a.visible = visible;
 
+    // The exclusive zone tells the compositor how much screen edge space this
+    // layer surface wants to reserve. When hidden, we release that space.
     zwlr_layer_surface_v1_set_exclusive_zone(a.layer_surface, visible ? a.height : 0);
 
     if (visible) {
+        // A null input region means the whole surface is interactive again.
         wl_surface_set_input_region(a.surface, nullptr);
         a.configured = false;
         a.redraw = false;
     } else {
+        // An empty input region makes the hidden surface stop receiving input,
+        // and detaching the buffer removes the already-drawn contents.
         wl_region* empty = wl_compositor_create_region(a.compositor);
         wl_surface_set_input_region(a.surface, empty);
         wl_region_destroy(empty);
@@ -179,6 +201,8 @@ static void set_bar_visible(App& a, bool visible) {
 }
 
 static int connect_hypr_socket2() {
+    // Hyprland exposes a Unix socket with newline-delimited events. We only use
+    // it for fullscreen notifications so the bar can get out of the way.
     const char* runtime = std::getenv("XDG_RUNTIME_DIR");
     const char* sig = std::getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!runtime || !sig || !*runtime || !*sig) return -1;
@@ -207,16 +231,19 @@ static int connect_hypr_socket2() {
 }
 
 static void handle_hypr_event(App& a, const std::string& line) {
-    constexpr const char* prefix = "fullscreen>>";
+    constexpr char prefix[] = "fullscreen>>";
+    constexpr size_t prefix_len = sizeof(prefix) - 1;
     if (line.rfind(prefix, 0) != 0) return;
 
-    bool fullscreen = line.size() > std::strlen(prefix) && line[std::strlen(prefix)] != '0';
+    bool fullscreen = line.size() > prefix_len && line[prefix_len] != '0';
     set_bar_visible(a, !fullscreen);
 }
 
 static void handle_hypr_readable(App& a) {
     if (a.hypr_fd < 0) return;
 
+    // Read as much as is currently available, keep incomplete trailing data in
+    // `hypr_buf`, and dispatch full newline-terminated events one by one.
     char buf[1024];
     while (true) {
         ssize_t n = recv(a.hypr_fd, buf, sizeof(buf), 0);
@@ -251,8 +278,30 @@ static void handle_hypr_readable(App& a) {
     }
 }
 
+static void update_bar_text(App& a, const std::string& line) {
+    if (line.empty()) {
+        a.left = " ";
+        a.center.clear();
+        a.right.clear();
+        return;
+    }
+
+    // Input is either a single left-aligned string, or three sections delimited
+    // by ASCII Unit Separator so shell scripts can update all segments at once.
+    size_t p1 = line.find(kSectionSeparator);
+    size_t p2 = (p1 == std::string::npos) ? std::string::npos : line.find(kSectionSeparator, p1 + 1);
+    bool split = p1 != std::string::npos && p2 != std::string::npos;
+
+    a.left = split ? line.substr(0, p1) : line;
+    a.center = split ? line.substr(p1 + 1, p2 - p1 - 1) : "";
+    a.right = split ? line.substr(p2 + 1) : "";
+}
+
 static void draw(App& a) {
     if (!a.configured || a.width <= 0 || !a.visible) return;
+
+    // The layer surface size is in logical coordinates. The backing buffer may
+    // be larger when rendering at scale > 1 for HiDPI output.
     int bw = a.width * a.buffer_scale;
     int bh = a.height * a.buffer_scale;
     if (!a.buf.wl || a.buf.w != bw || a.buf.h != bh) {
@@ -297,6 +346,8 @@ static void draw(App& a) {
 static void layer_surface_configure(void* data, zwlr_layer_surface_v1*, uint32_t serial,
                                     uint32_t width, uint32_t height) {
     auto& a = *static_cast<App*>(data);
+    // Layer-shell surfaces are configured asynchronously. We cannot rely on the
+    // requested size until the compositor sends this event and we ack it.
     zwlr_layer_surface_v1_ack_configure(a.layer_surface, serial);
     if (width > 0) a.width = (int)width;
     if (height > 0) a.height = (int)height;
@@ -340,6 +391,8 @@ static void registry_add(void* data, wl_registry* reg, uint32_t name,
     auto& a = *static_cast<App*>(data);
     (void)version;
 
+    // The Wayland registry is runtime discovery: the compositor tells us which
+    // global interfaces exist, and we bind only the ones this program needs.
     if (strcmp(iface, wl_compositor_interface.name) == 0) {
         a.compositor = static_cast<wl_compositor*>(
             wl_registry_bind(reg, name, &wl_compositor_interface, 4));
@@ -366,6 +419,8 @@ static const wl_registry_listener registry_listener = {
 int main() {
     App a{};
 
+    // Connect to the compositor, discover globals, then create a layer-shell
+    // surface anchored to the top edge of the chosen output.
     a.display = wl_display_connect(nullptr);
     if (!a.display) {
         std::cerr << "failed to connect to wayland\n";
@@ -408,6 +463,10 @@ int main() {
 
         wl_display_flush(a.display);
 
+        // One poll loop drives everything:
+        // - Wayland socket: compositor events such as configure/scale
+        // - stdin: external text updates for the bar contents
+        // - Hyprland socket: fullscreen state changes
         pollfd fds[3] = {
             { .fd = wl_fd, .events = POLLIN, .revents = 0 },
             { .fd = stdin_fd, .events = POLLIN, .revents = 0 },
@@ -427,18 +486,7 @@ int main() {
             if (!std::getline(std::cin, line)) {
                 a.running = false;
             } else {
-                if (line.empty()) {
-                    a.left = " ";
-                    a.center.clear();
-                    a.right.clear();
-                } else {
-                    size_t p1 = line.find('\x1f');
-                    size_t p2 = (p1 == std::string::npos) ? std::string::npos : line.find('\x1f', p1 + 1);
-                    bool split = p1 != std::string::npos && p2 != std::string::npos;
-                    a.left = split ? line.substr(0, p1) : line;
-                    a.center = split ? line.substr(p1 + 1, p2 - p1 - 1) : "";
-                    a.right = split ? line.substr(p2 + 1) : "";
-                }
+                update_bar_text(a, line);
                 a.redraw = true;
             }
         }
@@ -452,6 +500,8 @@ int main() {
         }
     }
 
+    // Tear down in reverse order of ownership so Wayland objects do not outlive
+    // the connection they were created from.
     destroy_buffer(a.buf);
     if (a.layer_surface) zwlr_layer_surface_v1_destroy(a.layer_surface);
     if (a.surface) wl_surface_destroy(a.surface);
