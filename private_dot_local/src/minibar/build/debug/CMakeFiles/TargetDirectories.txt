@@ -1,4 +1,0 @@
-/home/falk/.local/share/chezmoi/private_dot_local/src/minibar/build/debug/CMakeFiles/protocol_bindings.dir
-/home/falk/.local/share/chezmoi/private_dot_local/src/minibar/build/debug/CMakeFiles/minibar.dir
-/home/falk/.local/share/chezmoi/private_dot_local/src/minibar/build/debug/CMakeFiles/edit_cache.dir
-/home/falk/.local/share/chezmoi/private_dot_local/src/minibar/build/debug/CMakeFiles/rebuild_cache.dir

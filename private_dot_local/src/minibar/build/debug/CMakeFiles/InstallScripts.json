@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/falk/.local/share/chezmoi/private_dot_local/src/minibar/build/debug/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
