@@ -141,7 +141,7 @@ static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, in
 static int text_width(cairo_t* cr, const std::string& text, int scale) {
     PangoLayout* layout = pango_cairo_create_layout(cr);
     pango_layout_set_markup(layout, text.c_str(), -1);
-    std::string font_str = "Noto Sans Mono " + std::to_string(10 * scale);
+    std::string font_str = "NotoSansM Nerd Font " + std::to_string(10 * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
     pango_layout_set_font_description(layout, font);
     int tw = 0;

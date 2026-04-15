@@ -11,15 +11,33 @@ field_sep=$'\x1e'
 
 sanitize() {
   local s=$1
-  [[ $s == *['&<'$'\n'$'\r'$'\x1e'$'\x1f']* ]] || { printf '%s' "$s"; return; }
-  s=${s//&/\&amp;}
-  s=${s//</\&lt;}
-  s=${s//$'\n'/ }
-  s=${s//$'\r'/ }
-  s=${s//$'\x1f'/ }
-  s=${s//$'\x1e'/ }
-  while [[ $s == *"  "* ]]; do s=${s//  / }; done
-  printf '%s' "$s"
+
+  # original trigger chars + chars that need unicode filtering
+  [[ $s == *['&<'$'\n'$'\r'$'\x1e'$'\x1f']* || $s == *[✓✗↓↑←→↔↕▲▼△▽⚠]* || $s == *[$'\u200d'$'\ufe0e'$'\ufe0f']* ]] || {
+    printf '%s' "$s"
+    return
+  }
+
+  printf '%s' "$s" | perl -Mutf8 -CSDA -pe '
+    # original sanitize behavior
+    s/&/&amp;/g;
+    s/</&lt;/g;
+    s/\n/ /g;
+    s/\r/ /g;
+    s/\x{1F}/ /g;
+    s/\x{1E}/ /g;
+
+    # extra unicode cleanup for minibar
+    s/[\x{FE0E}\x{FE0F}\x{200D}]//g;   # text/emoji selectors, ZWJ
+    s/[\x{1F000}-\x{1FAFF}]//g;        # emoji / pictographs
+
+    # allow text, punctuation, spaces, Nerd PUA, and selected symbols
+    s/[^\p{L}\p{N}\p{P}\p{Zs}\x{E000}-\x{F8FF}✓✗↓↑←→↔↕▲▼△▽⚠]/ /g;
+
+    s/ {2,}/ /g;
+    s/^ //;
+    s/ $//;
+  '
 }
 
 short() {
@@ -308,7 +326,7 @@ txb=0
 brt=0
 iface=''
 net_iface=''
-br_s='⬇0 ⬆0'
+br_s='▼0 ▲0'
 
 br() {
   local rxb_now txb_now rxkbit txkbit dt_ms tnow rxsym txsym
@@ -326,7 +344,7 @@ br() {
     rxb=$(< /sys/class/net/$iface/statistics/rx_bytes)
     txb=$(< /sys/class/net/$iface/statistics/tx_bytes)
     brt=$(date +%s%3N)
-    br_s='⬇0 ⬆0'
+    br_s='▼0 ▲0'
     return 0
   fi
 
@@ -349,7 +367,7 @@ br() {
   elif (( $txkbit < 1000000000 )); then txsym=G txkbit=$(($txkbit/1000000))
   fi
 
-  br_s="$(printf '⬇%3s%s ⬆%3s%s' "$rxkbit" "$rxsym" "$txkbit" "$txsym")"
+  br_s="$(printf '▼%3s%s ▲%3s%s' "$rxkbit" "$rxsym" "$txkbit" "$txsym")"
 
   return 0
 }
