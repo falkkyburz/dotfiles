@@ -91,8 +91,9 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
--- Show tabline
-vim.o.showtabline = 2
+-- Tab key behavior
+vim.o.expandtab = true
+vim.o.smarttab = true
 
 -- }}}
 
@@ -228,7 +229,7 @@ rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
 	-- NOTE: Plugins can be added via a link or github org/name. To run setup automatically, use `opts = {}`
-	{ "NMAC427/guess-indent.nvim", opts = {} },
+	-- { "NMAC427/guess-indent.nvim", opts = {} },
 
 	-- Alternatively, use `config = function() ... end` for full control over the configuration.
 	-- If you prefer to call `setup` explicitly, use:
@@ -594,7 +595,7 @@ require("lazy").setup({
 			--  See `:help lsp-config` for information about keys and how to configure
 			---@type table<string, vim.lsp.Config>
 			local servers = {
-				-- clangd = {},
+				clangd = {},
 				-- gopls = {},
 				-- pyright = {},
 				-- rust_analyzer = {},

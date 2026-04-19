@@ -10,16 +10,7 @@ c_red='#ff5f56'
 field_sep=$'\x1e'
 
 sanitize() {
-  local s=$1
-
-  # original trigger chars + chars that need unicode filtering
-  [[ $s == *['&<'$'\n'$'\r'$'\x1e'$'\x1f']* || $s == *[✓✗↓↑←→↔↕▲▼△▽⚠]* || $s == *[$'\u200d'$'\ufe0e'$'\ufe0f']* ]] || {
-    printf '%s' "$s"
-    return
-  }
-
-  printf '%s' "$s" | perl -Mutf8 -CSDA -pe '
-    # original sanitize behavior
+  printf '%s' "$1" | perl -Mutf8 -CSDA -pe '
     s/&/&amp;/g;
     s/</&lt;/g;
     s/\n/ /g;
@@ -27,11 +18,9 @@ sanitize() {
     s/\x{1F}/ /g;
     s/\x{1E}/ /g;
 
-    # extra unicode cleanup for minibar
-    s/[\x{FE0E}\x{FE0F}\x{200D}]//g;   # text/emoji selectors, ZWJ
+    s/[\x{FE0E}\x{FE0F}\x{200D}]//g;   # selectors, ZWJ
     s/[\x{1F000}-\x{1FAFF}]//g;        # emoji / pictographs
 
-    # allow text, punctuation, spaces, Nerd PUA, and selected symbols
     s/[^\p{L}\p{N}\p{P}\p{Zs}\x{E000}-\x{F8FF}✓✗↓↑←→↔↕▲▼△▽⚠]/ /g;
 
     s/ {2,}/ /g;
