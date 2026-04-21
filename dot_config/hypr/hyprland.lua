@@ -226,14 +226,14 @@ hl.bind(mainMod .. ' + SHIFT + P', hl.exec_cmd('~/.local/bin/powerprofilesctl_me
 hl.bind(mainMod .. ' + V',         hl.exec_cmd('~/.local/bin/cliphist_show.sh'),          { description = 'Open clipboard history' })
 hl.bind(mainMod .. ' + K',         hl.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
 
-hl.bind(mainMod .. ' + Left',      hl.focus({ direction = 'left' }),  { description = 'Move focus left' })
-hl.bind(mainMod .. ' + Right',     hl.focus({ direction = 'right' }), { description = 'Move focus right' })
-hl.bind(mainMod .. ' + Up',        hl.focus({ direction = 'up' }),    { description = 'Move focus up' })
-hl.bind(mainMod .. ' + Down',      hl.focus({ direction = 'down' }),  { description = 'Move focus down' })
-hl.bind(mainMod .. ' + ALT + H',   hl.focus({ direction = 'left' }),  { description = 'Move focus left' })
-hl.bind(mainMod .. ' + ALT + L',   hl.focus({ direction = 'right' }), { description = 'Move focus right' })
-hl.bind(mainMod .. ' + ALT + K',   hl.focus({ direction = 'up' }),    { description = 'Move focus up' })
-hl.bind(mainMod .. ' + ALT + J',   hl.focus({ direction = 'down' }),  { description = 'Move focus down' })
+hl.bind(mainMod .. ' + Left',    hl.focus({ direction = 'left' }),  { description = 'Move focus left' })
+hl.bind(mainMod .. ' + Right',   hl.focus({ direction = 'right' }), { description = 'Move focus right' })
+hl.bind(mainMod .. ' + Up',      hl.focus({ direction = 'up' }),    { description = 'Move focus up' })
+hl.bind(mainMod .. ' + Down',    hl.focus({ direction = 'down' }),  { description = 'Move focus down' })
+hl.bind(mainMod .. ' + ALT + H', hl.focus({ direction = 'left' }),  { description = 'Move focus left' })
+hl.bind(mainMod .. ' + ALT + L', hl.focus({ direction = 'right' }), { description = 'Move focus right' })
+hl.bind(mainMod .. ' + ALT + K', hl.focus({ direction = 'up' }),    { description = 'Move focus up' })
+hl.bind(mainMod .. ' + ALT + J', hl.focus({ direction = 'down' }),  { description = 'Move focus down' })
 
 hl.bind(mainMod .. ' + SHIFT + Left',  hl.window.move({ direction = 'left' }),  { description = 'Move window left' })
 hl.bind(mainMod .. ' + SHIFT + Right', hl.window.move({ direction = 'right' }), { description = 'Move window right' })
@@ -246,34 +246,34 @@ for i = 1, 10 do
     hl.bind(mainMod .. ' + SHIFT + ' .. key, hl.window.move({ workspace = i }), { description = 'Move to workspace ' .. i })
 end
 
-hl.bind(mainMod .. ' + Grave',          hl.workspace('previous'), { description = 'Switch to previous workspace' })
+hl.bind(mainMod .. ' + Grave', hl.workspace('previous'), { description = 'Switch to previous workspace' })
 
 hl.bind(mainMod .. ' + SHIFT + Period', hl.workspace.move({ monitor = '+1' }), { description = 'Move current workspace to next monitor' })
 hl.bind(mainMod .. ' + SHIFT + Comma',  hl.workspace.move({ monitor = '-1' }), { description = 'Move current workspace to previous monitor' })
 
-hl.bind(mainMod .. ' + S',              hl.workspace({ special = 'magic' }),             { description = 'Toggle special workspace' })
-hl.bind(mainMod .. ' + SHIFT + S',      hl.window.move({ workspace = 'special:magic' }), { description = 'Move to magic workspace' })
+hl.bind(mainMod .. ' + S',         hl.workspace({ special = 'magic' }),             { description = 'Toggle special workspace' })
+hl.bind(mainMod .. ' + SHIFT + S', hl.window.move({ workspace = 'special:magic' }), { description = 'Move to magic workspace' })
 
-hl.bind(mainMod .. ' + mouse_down',     hl.workspace('e+1'), { description = 'Scroll workspaces' })
-hl.bind(mainMod .. ' + mouse_up',       hl.workspace('e-1'), { description = 'Scroll workspaces' })
+hl.bind(mainMod .. ' + mouse_down',hl.workspace('e+1'), { description = 'Scroll workspaces' })
+hl.bind(mainMod .. ' + mouse_up',  hl.workspace('e-1'), { description = 'Scroll workspaces' })
 
-hl.bind(mainMod .. ' + mouse:272',      hl.window.drag(),   { mouse = true, description = 'Move with mouse' })
-hl.bind(mainMod .. ' + mouse:273',      hl.window.resize(), { mouse = true, description = 'Resize with mouse' })
+hl.bind(mainMod .. ' + mouse:272', hl.window.drag(),   { mouse = true, description = 'Move with mouse' })
+hl.bind(mainMod .. ' + mouse:273', hl.window.resize(), { mouse = true, description = 'Resize with mouse' })
 
-hl.bind('XF86AudioRaiseVolume',         hl.exec_cmd('swayosd-client --output-volume raise'),       { locked = true, repeating = true, description = 'Volume raise' })
-hl.bind('XF86AudioLowerVolume',         hl.exec_cmd('swayosd-client --output-volume lower'),       { locked = true, repeating = true, description = 'Volume lower' })
-hl.bind('XF86AudioMute',                hl.exec_cmd('swayosd-client --output-volume mute-toggle'), { locked = true, repeating = true, description = 'Output mute toggle' })
-hl.bind('XF86AudioMicMute',             hl.exec_cmd('swayosd-client --input-volume mute-toggle'),  { locked = true, repeating = true, description = 'Input mute toggle' })
-hl.bind('XF86MonBrightnessUp',          hl.exec_cmd('swayosd-client --brightness raise'),          { locked = true, repeating = true, description = 'Brightness raise' })
-hl.bind('XF86MonBrightnessDown',        hl.exec_cmd('swayosd-client --brightness lower'),          { locked = true, repeating = true, description = 'Brightness lower' })
+hl.bind('XF86AudioRaiseVolume',  hl.exec_cmd('swayosd-client --output-volume raise'),       { locked = true, repeating = true, description = 'Volume raise' })
+hl.bind('XF86AudioLowerVolume',  hl.exec_cmd('swayosd-client --output-volume lower'),       { locked = true, repeating = true, description = 'Volume lower' })
+hl.bind('XF86AudioMute',         hl.exec_cmd('swayosd-client --output-volume mute-toggle'), { locked = true, repeating = true, description = 'Output mute toggle' })
+hl.bind('XF86AudioMicMute',      hl.exec_cmd('swayosd-client --input-volume mute-toggle'),  { locked = true, repeating = true, description = 'Input mute toggle' })
+hl.bind('XF86MonBrightnessUp',   hl.exec_cmd('swayosd-client --brightness raise'),          { locked = true, repeating = true, description = 'Brightness raise' })
+hl.bind('XF86MonBrightnessDown', hl.exec_cmd('swayosd-client --brightness lower'),          { locked = true, repeating = true, description = 'Brightness lower' })
 
-hl.bind('XF86AudioNext',                hl.exec_cmd('playerctl next'),       { locked = true, description = 'Play next' })
-hl.bind('XF86AudioPause',               hl.exec_cmd('playerctl play-pause'), { locked = true, description = 'Pause' })
-hl.bind('XF86AudioPlay',                hl.exec_cmd('playerctl play-pause'), { locked = true, description = 'Play' })
-hl.bind('XF86AudioPrev',                hl.exec_cmd('playerctl previous'),   { locked = true, description = 'Play prev' })
+hl.bind('XF86AudioNext',  hl.exec_cmd('playerctl next'),       { locked = true, description = 'Play next' })
+hl.bind('XF86AudioPause', hl.exec_cmd('playerctl play-pause'), { locked = true, description = 'Pause' })
+hl.bind('XF86AudioPlay',  hl.exec_cmd('playerctl play-pause'), { locked = true, description = 'Play' })
+hl.bind('XF86AudioPrev',  hl.exec_cmd('playerctl previous'),   { locked = true, description = 'Play prev' })
 
-hl.bind('SUPER + Equal',                hl.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
-hl.bind('SUPER + Minus',                hl.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
+hl.bind('SUPER + Equal', hl.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
+hl.bind('SUPER + Minus', hl.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
 
 -- }}}
 
