@@ -206,7 +206,11 @@ hl.device({
 
 hl.bind(mainMod .. ' + Return', hl.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"'), { description = 'Open terminal' })
 hl.bind(mainMod .. ' + X', hl.window.kill(), { description = 'Close active window' })
-hl.bind(mainMod .. ' + M', hl.exec_cmd('command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch exit'), { description = 'Close hyprland' })
+hl.bind(
+    mainMod .. ' + M',
+    hl.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.exit()'"),
+    { description = 'Close hyprland' }
+)
 hl.bind(mainMod .. ' + E', hl.exec_cmd('thunar'), { description = 'Open file explorer' })
 hl.bind(mainMod .. ' + N', hl.exec_cmd('nm-connection-editor'), { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.exec_cmd('kitty --class kitty_nmtui --hold nmtui'), { description = 'Open NM TUI' })
@@ -255,16 +259,8 @@ end
 
 hl.bind(mainMod .. ' + Grave', hl.workspace('previous'), { description = 'Switch to previous workspace' })
 
-hl.bind(
-    mainMod .. ' + SHIFT + Period',
-    hl.exec_cmd('hyprctl dispatch movecurrentworkspacetomonitor +1'),
-    { description = 'Move current workspace to next monitor' }
-)
-hl.bind(
-    mainMod .. ' + SHIFT + Comma',
-    hl.exec_cmd('hyprctl dispatch movecurrentworkspacetomonitor -1'),
-    { description = 'Move current workspace to previous monitor' }
-)
+hl.bind(mainMod .. ' + SHIFT + Period', hl.workspace.move({ monitor = '+1' }), { description = 'Move current workspace to next monitor' })
+hl.bind(mainMod .. ' + SHIFT + Comma', hl.workspace.move({ monitor = '-1' }), { description = 'Move current workspace to previous monitor' })
 
 hl.bind(mainMod .. ' + S', hl.workspace({ special = 'magic' }), { description = 'Toggle special workspace' })
 hl.bind(mainMod .. ' + SHIFT + S', hl.window.move({ workspace = 'special:magic' }), { description = 'Move to magic workspace' })

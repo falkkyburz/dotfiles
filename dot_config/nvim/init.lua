@@ -677,31 +677,42 @@ require("lazy").setup({
 				mode = "",
 				desc = "[F]ormat buffer",
 			},
+			{
+				"<leader>tf",
+				function()
+					vim.g.disable_autoformat = not vim.g.disable_autoformat
+					if vim.g.disable_autoformat then
+						vim.notify("Autoformat disabled")
+					else
+						vim.notify("Autoformat enabled")
+					end
+				end,
+				mode = "n",
+				desc = "[T]oggle auto[F]ormat",
+			},
 		},
 		---@module 'conform'
 		---@type conform.setupOpts
 		opts = {
 			notify_on_error = false,
 			format_on_save = function(bufnr)
-				-- Disable "format_on_save lsp_fallback" for languages that don't
-				-- have a well standardized coding style. You can add additional
-				-- languages here or re-enable it for the disabled ones.
+				if vim.g.disable_autoformat then
+					return nil
+				end
+
 				local disable_filetypes = { c = true, cpp = true }
 				if disable_filetypes[vim.bo[bufnr].filetype] then
 					return nil
-				else
-					return {
-						timeout_ms = 500,
-						lsp_format = "fallback",
-					}
 				end
+
+				return {
+					timeout_ms = 500,
+					lsp_format = "fallback",
+				}
 			end,
 			formatters_by_ft = {
 				lua = { "stylua" },
-				-- Conform can also run multiple formatters sequentially
 				-- python = { "isort", "black" },
-				--
-				-- You can use 'stop_after_first' to run the first available formatter from the list
 				-- javascript = { "prettierd", "prettier", stop_after_first = true },
 			},
 		},
@@ -921,7 +932,14 @@ require("lazy").setup({
 			})
 		end,
 	},
-
+	{
+		"nvim-tree/nvim-tree.lua",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		config = function()
+			require("nvim-tree").setup({})
+			vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle file tree" })
+		end,
+	},
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
 	-- init.lua. If you want these files, they are in the repository, so you can just download them and
 	-- place them in the correct locations.
