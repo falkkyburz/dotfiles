@@ -95,6 +95,9 @@ vim.o.confirm = true
 vim.o.expandtab = true
 vim.o.smarttab = true
 
+-- Turn off autoformat on startup
+vim.g.disable_autoformat = true
+
 -- }}}
 
 -- {{{ Basic Keymaps
@@ -633,6 +636,7 @@ require("lazy").setup({
 								library = vim.tbl_extend("force", vim.api.nvim_get_runtime_file("", true), {
 									"${3rd}/luv/library",
 									"${3rd}/busted/library",
+									"/home/falk/Work/Hyprland/meta",
 								}),
 							},
 						})
