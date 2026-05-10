@@ -20,6 +20,7 @@ hl.on('hyprland.start', function()
     -- System
     hl.exec_cmd('dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
     hl.exec_cmd('systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
+    hl.exec_cmd('/usr/lib/pam_kwallet_init')
     hl.exec_cmd('hypridle')
     hl.exec_cmd('hyprpaper')
     hl.exec_cmd('hyprsunset')
@@ -136,7 +137,6 @@ hl.animation({ leaf = 'zoomFactor',    enabled = true, speed = 7,    bezier = 'q
 
 hl.config({
     dwindle = {
-        pseudotile = true,
         preserve_split = true,
     },
 })

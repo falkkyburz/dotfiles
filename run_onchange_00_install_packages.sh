@@ -13,6 +13,9 @@ PACMAN_PKGS=(
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
   unzip tree-sitter-cli
 
+  # keyring
+  kwallet kwallet-pam kwalletmanager
+
   # bluetooth
   blueman bluez bluez-utils
 
@@ -43,7 +46,7 @@ PACMAN_PKGS=(
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
-  lolcat figlet duf dust ripgrep exiftool rsync bandwhich
+  lolcat figlet duf dust ripgrep exiftool rsync bandwhich pkgstats
 
   # GUI Tools
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark

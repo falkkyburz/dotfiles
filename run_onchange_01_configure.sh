@@ -44,6 +44,26 @@ fi
 
 rm -f "$tmp"
 
+# Configure PAM login for KWallet auto-unlock on TTY login
+tmp="$(mktemp)"
+cat >"$tmp" <<'EOF'
+#%PAM-1.0
+
+auth       requisite    pam_nologin.so
+auth       include      system-local-login
+auth       optional     pam_kwallet5.so
+account    include      system-local-login
+session    include      system-local-login
+session    optional     pam_kwallet5.so auto_start force_run kwalletd=/usr/bin/ksecretd
+password   include      system-local-login
+EOF
+
+if ! sudo cmp -s "$tmp" /etc/pam.d/login 2>/dev/null; then
+  sudo install -Dm644 "$tmp" /etc/pam.d/login
+fi
+
+rm -f "$tmp"
+
 # Configure firewall -> Make nftables config file. 
 # Uncomment the sshd line to allow incoming ssh sessions.
 tmp="$(mktemp)"
