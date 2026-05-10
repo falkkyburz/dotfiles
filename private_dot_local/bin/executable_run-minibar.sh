@@ -302,7 +302,7 @@ cpu() {
   fi
 
   if [[ "$raw" =~ ^[0-9]+$ ]] && ((raw > 95)); then
-    cpu_s="$(printf '%s %s%%' "$(markup "$c_red" '󰍛')" "$(sanitize "$display")")"
+    cpu_s="$(printf '󰍛 %s' "$(markup "$c_red" "$display%")")"
     return 0
   fi
 
