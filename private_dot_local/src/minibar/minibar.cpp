@@ -47,6 +47,11 @@ struct Bar {
     bool configured = false;
     bool redraw = true;
     bool visible = true;
+
+    std::string output_name;
+    std::string left = "[1] 2 3 4";
+    std::string center = "minibar";
+    std::string right = "--:--";
 };
 
 // `App` keeps all global Wayland objects and the shared text state in one
@@ -64,10 +69,6 @@ struct App {
 
     int hypr_fd = -1;
     std::string hypr_buf;
-
-    std::string left = "[1] 2 3 4";
-    std::string center = "minibar";
-    std::string right = "--:--";
 };
 
 constexpr char kSectionSeparator = '\x1f';
@@ -287,23 +288,42 @@ static void handle_hypr_readable(App& a) {
     }
 }
 
+static std::vector<std::string> split_fields(const std::string& line) {
+    std::vector<std::string> fields;
+    size_t start = 0;
+    while (true) {
+        size_t pos = line.find(kSectionSeparator, start);
+        if (pos == std::string::npos) {
+            fields.push_back(line.substr(start));
+            return fields;
+        }
+
+        fields.push_back(line.substr(start, pos - start));
+        start = pos + 1;
+    }
+}
+
+static void set_bar_text(Bar& b, const std::string& left,
+                         const std::string& center, const std::string& right) {
+    b.left = left;
+    b.center = center;
+    b.right = right;
+    b.redraw = true;
+}
+
 static void update_bar_text(App& a, const std::string& line) {
-    if (line.empty()) {
-        a.left = " ";
-        a.center.clear();
-        a.right.clear();
+    std::vector<std::string> fields = split_fields(line);
+
+    if (fields.size() == 3) {
+        for (auto& bar : a.bars) set_bar_text(*bar, fields[0], fields[1], fields[2]);
         return;
     }
 
-    // Input is either a single left-aligned string, or three sections delimited
-    // by ASCII Unit Separator so shell scripts can update all segments at once.
-    size_t p1 = line.find(kSectionSeparator);
-    size_t p2 = (p1 == std::string::npos) ? std::string::npos : line.find(kSectionSeparator, p1 + 1);
-    bool split = p1 != std::string::npos && p2 != std::string::npos;
-
-    a.left = split ? line.substr(0, p1) : line;
-    a.center = split ? line.substr(p1 + 1, p2 - p1 - 1) : "";
-    a.right = split ? line.substr(p2 + 1) : "";
+    if (fields.size() == 4) {
+        for (auto& bar : a.bars) {
+            if (bar->output_name == fields[0]) set_bar_text(*bar, fields[1], fields[2], fields[3]);
+        }
+    }
 }
 
 static void draw(App& a, Bar& b) {
@@ -333,16 +353,16 @@ static void draw(App& a, Bar& b) {
 
     const int pad = 8;
 
-    int cw = text_width(cr, a.center, b.buffer_scale);
-    int rw = text_width(cr, a.right, b.buffer_scale);
+    int cw = text_width(cr, b.center, b.buffer_scale);
+    int rw = text_width(cr, b.right, b.buffer_scale);
 
     int lx = pad;
     int cx = (b.width - cw) / 2;
     int rx = b.width - rw - pad;
 
-    draw_text(cr, a.left, lx, b.height, b.buffer_scale);
-    draw_text(cr, a.center, cx, b.height, b.buffer_scale);
-    draw_text(cr, a.right, rx, b.height, b.buffer_scale);
+    draw_text(cr, b.left, lx, b.height, b.buffer_scale);
+    draw_text(cr, b.center, cx, b.height, b.buffer_scale);
+    draw_text(cr, b.right, rx, b.height, b.buffer_scale);
     cairo_destroy(cr);
     cairo_surface_destroy(s);
 
@@ -387,19 +407,25 @@ static void output_scale(void* data, wl_output*, int32_t factor) {
     sync_buffer_scale(b);
 }
 
+static void output_name(void* data, wl_output*, const char* name) {
+    auto& b = *static_cast<Bar*>(data);
+    b.output_name = name ? name : "";
+}
+
+static void output_description(void*, wl_output*, const char*) {}
+
 static const wl_output_listener output_listener = {
     output_geometry,
     output_mode,
     output_done,
     output_scale,
-    nullptr,
-    nullptr,
+    output_name,
+    output_description,
 };
 
 static void registry_add(void* data, wl_registry* reg, uint32_t name,
                          const char* iface, uint32_t version) {
     auto& a = *static_cast<App*>(data);
-    (void)version;
 
     // The Wayland registry is runtime discovery: the compositor tells us which
     // global interfaces exist, and we bind only the ones this program needs.
@@ -412,8 +438,9 @@ static void registry_add(void* data, wl_registry* reg, uint32_t name,
     } else if (strcmp(iface, wl_output_interface.name) == 0) {
         auto bar = std::make_unique<Bar>();
         bar->app = &a;
+        uint32_t output_version = version < 4 ? version : 4;
         bar->output = static_cast<wl_output*>(
-            wl_registry_bind(reg, name, &wl_output_interface, 1));
+            wl_registry_bind(reg, name, &wl_output_interface, output_version));
         wl_output_add_listener(bar->output, &output_listener, bar.get());
         a.bars.push_back(std::move(bar));
     } else if (strcmp(iface, zwlr_layer_shell_v1_interface.name) == 0) {
@@ -515,7 +542,6 @@ int main() {
                 a.running = false;
             } else {
                 update_bar_text(a, line);
-                for (auto& bar : a.bars) bar->redraw = true;
             }
         }
 

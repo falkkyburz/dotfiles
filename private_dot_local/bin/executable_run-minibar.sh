@@ -7,7 +7,7 @@ if ! command -v minibar >/dev/null 2>&1; then
 fi
 
 c_red='#ff5f56'
-field_sep=$'\x1e'
+field_sep=$'\x1f'
 
 sanitize() {
   printf '%s' "$1" | perl -Mutf8 -CSDA -pe '
@@ -175,12 +175,18 @@ nmcli_net_state() {
     '
 }
 
-ws() {
-  local line id
-  IFS= read -r line < <(hyprctl activeworkspace 2>/dev/null || true)
-  id="${line#workspace ID }"
-  id="${id%% *}"
-  [[ "$id" =~ ^[0-9]+$ ]] || id='?'
+monitor_workspace_rows() {
+  hyprctl monitors -j 2>/dev/null |
+    jq -r '.[] | [.name, ((.activeWorkspace.id // "?") | tostring)] | @tsv' 2>/dev/null || true
+}
+
+monitor_ws_state() {
+  monitor_workspace_rows | sort
+}
+
+ws_label() {
+  local id="${1:-?}"
+  [[ "$id" =~ ^-?[0-9]+$ ]] || id='?'
   printf '[%s]' "$(sanitize "$id")"
 }
 
@@ -388,7 +394,36 @@ clock() {
   printf '%s' "$(sanitize "$(date '+%a %Y-%m-%d %H:%M')")"
 }
 
-ws_s="$(ws)"
+emit_for_monitors() {
+  local rows mon ws_id left right
+  rows="$(monitor_workspace_rows)"
+  right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$bat_s")"
+
+  if [[ -z "$rows" ]]; then
+    printf '%s%s%s%s%s\n' \
+      "$(join_nonempty "$(ws_label '?')" "$title_s" "$med_s")" \
+      "$field_sep" \
+      "$tim_s" \
+      "$field_sep" \
+      "$right"
+    return
+  fi
+
+  while IFS=$'\t' read -r mon ws_id; do
+    [[ -n "$mon" ]] || continue
+    left="$(join_nonempty "$(ws_label "$ws_id")" "$title_s" "$med_s")"
+    printf '%s%s%s%s%s%s%s\n' \
+      "$mon" \
+      "$field_sep" \
+      "$left" \
+      "$field_sep" \
+      "$tim_s" \
+      "$field_sep" \
+      "$right"
+  done <<< "$rows"
+}
+
+ws_state="$(monitor_ws_state)"
 mem_s="$(mem)"
 net
 bt_s="$(bt)"
@@ -409,16 +444,16 @@ next_bt=0
 while true; do
   now="$(date +%s)"
   ntim="$(clock)"
-  nw="$(ws)"
+  nws="$(monitor_ws_state)"
 
-  if [[ "$nw" != "$ws_s" ]]; then
-    ws_s="$nw"
+  if [[ "$nws" != "$ws_state" ]]; then
+    ws_state="$nws"
     redraw=1
   fi
 
   if [[ "${last:-}" != "$now" ]]; then
     last="$now"
-    ws_s="$(ws)"
+    ws_state="$(monitor_ws_state)"
     cpu
     br
     mem_s="$(mem)"
@@ -454,10 +489,7 @@ while true; do
   fi
 
   if (( ${redraw:-1} )); then
-    printf '%s\x1f%s\x1f%s\n' \
-      "$(join_nonempty "$ws_s" "$title_s" "$med_s")" \
-      "$tim_s" \
-      "$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$bat_s")"
+    emit_for_monitors
     redraw=0
   fi
 
