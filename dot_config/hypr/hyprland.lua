@@ -39,7 +39,7 @@ hl.on('hyprland.start', function()
 
     -- Apps
     hl.exec_cmd('firefox')
-    hl.exec_cmd('[workspace 2 silent] kitty')
+    hl.exec_cmd('kitty', {workspace = '2 silent'})
 end)
 
 -- }}}

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -29,17 +30,12 @@ struct Buffer {
     int w = 0, h = 0, stride = 0, size = 0;
 };
 
-// `App` keeps all long-lived Wayland objects and the current bar state in one
-// place. This program is small enough that a single state struct keeps the
-// control flow easier to follow than splitting things into classes.
-struct App {
-    wl_display* display = nullptr;
-    wl_registry* registry = nullptr;
-    wl_compositor* compositor = nullptr;
-    wl_shm* shm = nullptr;
-    wl_output* output = nullptr;
-    zwlr_layer_shell_v1* layer_shell = nullptr;
+struct App;
 
+// Each physical output needs its own layer-shell surface and backing buffer.
+struct Bar {
+    App* app = nullptr;
+    wl_output* output = nullptr;
     wl_surface* surface = nullptr;
     zwlr_layer_surface_v1* layer_surface = nullptr;
 
@@ -49,9 +45,22 @@ struct App {
     int output_scale = 1;
     int buffer_scale = 1;
     bool configured = false;
-    bool running = true;
     bool redraw = true;
     bool visible = true;
+};
+
+// `App` keeps all global Wayland objects and the shared text state in one
+// place. Per-output rendering state lives in `bars`.
+struct App {
+    wl_display* display = nullptr;
+    wl_registry* registry = nullptr;
+    wl_compositor* compositor = nullptr;
+    wl_shm* shm = nullptr;
+    zwlr_layer_shell_v1* layer_shell = nullptr;
+
+    std::vector<std::unique_ptr<Bar>> bars;
+
+    bool running = true;
 
     int hypr_fd = -1;
     std::string hypr_buf;
@@ -94,28 +103,28 @@ static void destroy_buffer(Buffer& b) {
     b = {};
 }
 
-static bool make_buffer(App& a, int w, int h) {
+static bool make_buffer(App& a, Bar& b, int w, int h) {
     // Recreate the backing store whenever the logical bar size or buffer scale
     // changes. The compositor sees the wl_buffer; Cairo sees the mmap'd memory.
-    destroy_buffer(a.buf);
-    a.buf.w = w;
-    a.buf.h = h;
-    a.buf.stride = w * 4;
-    a.buf.size = a.buf.stride * h;
-    a.buf.fd = create_shm_file(a.buf.size);
-    if (a.buf.fd < 0) return false;
+    destroy_buffer(b.buf);
+    b.buf.w = w;
+    b.buf.h = h;
+    b.buf.stride = w * 4;
+    b.buf.size = b.buf.stride * h;
+    b.buf.fd = create_shm_file(b.buf.size);
+    if (b.buf.fd < 0) return false;
 
-    a.buf.data = mmap(nullptr, a.buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, a.buf.fd, 0);
-    if (a.buf.data == MAP_FAILED) {
-        a.buf.data = nullptr;
-        destroy_buffer(a.buf);
+    b.buf.data = mmap(nullptr, b.buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, b.buf.fd, 0);
+    if (b.buf.data == MAP_FAILED) {
+        b.buf.data = nullptr;
+        destroy_buffer(b.buf);
         return false;
     }
 
-    wl_shm_pool* pool = wl_shm_create_pool(a.shm, a.buf.fd, a.buf.size);
-    a.buf.wl = wl_shm_pool_create_buffer(pool, 0, w, h, a.buf.stride, WL_SHM_FORMAT_ARGB8888);
+    wl_shm_pool* pool = wl_shm_create_pool(a.shm, b.buf.fd, b.buf.size);
+    b.buf.wl = wl_shm_pool_create_buffer(pool, 0, w, h, b.buf.stride, WL_SHM_FORMAT_ARGB8888);
     wl_shm_pool_destroy(pool);
-    return a.buf.wl != nullptr;
+    return b.buf.wl != nullptr;
 }
 
 static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, int scale) {
@@ -151,53 +160,53 @@ static int text_width(cairo_t* cr, const std::string& text, int scale) {
     return (tw + scale - 1) / scale;
 }
 
-static int choose_buffer_scale(const App& a) {
+static int choose_buffer_scale(const Bar& b) {
     // The compositor reports an output scale, but we allow an override because
     // tiny bars often look sharper if rendered into a denser buffer.
     if (const char* env = std::getenv("MINIBAR_BUFFER_SCALE")) {
         int s = std::atoi(env);
         if (s > 0) return s;
     }
-    return a.output_scale > 1 ? a.output_scale : 2;
+    return b.output_scale > 1 ? b.output_scale : 2;
 }
 
-static void sync_buffer_scale(App& a) {
-    int s = choose_buffer_scale(a);
-    if (s != a.buffer_scale) {
-        a.buffer_scale = s;
-        if (a.surface) wl_surface_set_buffer_scale(a.surface, a.buffer_scale);
-        a.redraw = true;
+static void sync_buffer_scale(Bar& b) {
+    int s = choose_buffer_scale(b);
+    if (s != b.buffer_scale) {
+        b.buffer_scale = s;
+        if (b.surface) wl_surface_set_buffer_scale(b.surface, b.buffer_scale);
+        b.redraw = true;
     }
 }
 
-static void set_bar_visible(App& a, bool visible) {
-    if (!a.layer_surface || !a.surface || visible == a.visible) return;
+static void set_bar_visible(App& a, Bar& b, bool visible) {
+    if (!b.layer_surface || !b.surface || visible == b.visible) return;
 
-    a.visible = visible;
+    b.visible = visible;
 
     // The exclusive zone tells the compositor how much screen edge space this
     // layer surface wants to reserve. When hidden, we release that space.
-    zwlr_layer_surface_v1_set_exclusive_zone(a.layer_surface, visible ? a.height : 0);
+    zwlr_layer_surface_v1_set_exclusive_zone(b.layer_surface, visible ? b.height : 0);
 
     if (visible) {
         // A null input region means the whole surface is interactive again.
-        wl_surface_set_input_region(a.surface, nullptr);
-        a.configured = false;
-        a.redraw = false;
+        wl_surface_set_input_region(b.surface, nullptr);
+        b.configured = false;
+        b.redraw = false;
     } else {
         // An empty input region makes the hidden surface stop receiving input,
         // and detaching the buffer removes the already-drawn contents.
         wl_region* empty = wl_compositor_create_region(a.compositor);
-        wl_surface_set_input_region(a.surface, empty);
+        wl_surface_set_input_region(b.surface, empty);
         wl_region_destroy(empty);
 
-        wl_surface_attach(a.surface, nullptr, 0, 0);
-        wl_surface_damage_buffer(a.surface, 0, 0, INT32_MAX, INT32_MAX);
-        a.configured = false;
-        a.redraw = false;
+        wl_surface_attach(b.surface, nullptr, 0, 0);
+        wl_surface_damage_buffer(b.surface, 0, 0, INT32_MAX, INT32_MAX);
+        b.configured = false;
+        b.redraw = false;
     }
 
-    wl_surface_commit(a.surface);
+    wl_surface_commit(b.surface);
 }
 
 static int connect_hypr_socket2() {
@@ -236,7 +245,7 @@ static void handle_hypr_event(App& a, const std::string& line) {
     if (line.rfind(prefix, 0) != 0) return;
 
     bool fullscreen = line.size() > prefix_len && line[prefix_len] != '0';
-    set_bar_visible(a, !fullscreen);
+    for (auto& bar : a.bars) set_bar_visible(a, *bar, !fullscreen);
 }
 
 static void handle_hypr_readable(App& a) {
@@ -297,15 +306,15 @@ static void update_bar_text(App& a, const std::string& line) {
     a.right = split ? line.substr(p2 + 1) : "";
 }
 
-static void draw(App& a) {
-    if (!a.configured || a.width <= 0 || !a.visible) return;
+static void draw(App& a, Bar& b) {
+    if (!b.configured || b.width <= 0 || !b.visible) return;
 
     // The layer surface size is in logical coordinates. The backing buffer may
     // be larger when rendering at scale > 1 for HiDPI output.
-    int bw = a.width * a.buffer_scale;
-    int bh = a.height * a.buffer_scale;
-    if (!a.buf.wl || a.buf.w != bw || a.buf.h != bh) {
-        if (!make_buffer(a, bw, bh)) {
+    int bw = b.width * b.buffer_scale;
+    int bh = b.height * b.buffer_scale;
+    if (!b.buf.wl || b.buf.w != bw || b.buf.h != bh) {
+        if (!make_buffer(a, b, bw, bh)) {
             std::cerr << "failed to create shm buffer\n";
             a.running = false;
             return;
@@ -313,8 +322,8 @@ static void draw(App& a) {
     }
 
     cairo_surface_t* s = cairo_image_surface_create_for_data(
-        static_cast<unsigned char*>(a.buf.data),
-        CAIRO_FORMAT_ARGB32, a.buf.w, a.buf.h, a.buf.stride);
+        static_cast<unsigned char*>(b.buf.data),
+        CAIRO_FORMAT_ARGB32, b.buf.w, b.buf.h, b.buf.stride);
     cairo_t* cr = cairo_create(s);
 
     cairo_set_source_rgb(cr, 0.08, 0.08, 0.08);
@@ -324,39 +333,40 @@ static void draw(App& a) {
 
     const int pad = 8;
 
-    int cw = text_width(cr, a.center, a.buffer_scale);
-    int rw = text_width(cr, a.right, a.buffer_scale);
+    int cw = text_width(cr, a.center, b.buffer_scale);
+    int rw = text_width(cr, a.right, b.buffer_scale);
 
     int lx = pad;
-    int cx = (a.width - cw) / 2;
-    int rx = a.width - rw - pad;
+    int cx = (b.width - cw) / 2;
+    int rx = b.width - rw - pad;
 
-    draw_text(cr, a.left, lx, a.height, a.buffer_scale);
-    draw_text(cr, a.center, cx, a.height, a.buffer_scale);
-    draw_text(cr, a.right, rx, a.height, a.buffer_scale);
+    draw_text(cr, a.left, lx, b.height, b.buffer_scale);
+    draw_text(cr, a.center, cx, b.height, b.buffer_scale);
+    draw_text(cr, a.right, rx, b.height, b.buffer_scale);
     cairo_destroy(cr);
     cairo_surface_destroy(s);
 
-    wl_surface_attach(a.surface, a.buf.wl, 0, 0);
-    wl_surface_damage_buffer(a.surface, 0, 0, a.buf.w, a.buf.h);
-    wl_surface_commit(a.surface);
-    a.redraw = false;
+    wl_surface_attach(b.surface, b.buf.wl, 0, 0);
+    wl_surface_damage_buffer(b.surface, 0, 0, b.buf.w, b.buf.h);
+    wl_surface_commit(b.surface);
+    b.redraw = false;
 }
 
 static void layer_surface_configure(void* data, zwlr_layer_surface_v1*, uint32_t serial,
                                     uint32_t width, uint32_t height) {
-    auto& a = *static_cast<App*>(data);
+    auto& b = *static_cast<Bar*>(data);
     // Layer-shell surfaces are configured asynchronously. We cannot rely on the
     // requested size until the compositor sends this event and we ack it.
-    zwlr_layer_surface_v1_ack_configure(a.layer_surface, serial);
-    if (width > 0) a.width = (int)width;
-    if (height > 0) a.height = (int)height;
-    a.configured = true;
-    a.redraw = true;
+    zwlr_layer_surface_v1_ack_configure(b.layer_surface, serial);
+    if (width > 0) b.width = (int)width;
+    if (height > 0) b.height = (int)height;
+    b.configured = true;
+    b.redraw = true;
 }
 
 static void layer_surface_closed(void* data, zwlr_layer_surface_v1*) {
-    static_cast<App*>(data)->running = false;
+    auto& b = *static_cast<Bar*>(data);
+    if (b.app) b.app->running = false;
 }
 
 static const zwlr_layer_surface_v1_listener layer_surface_listener = {
@@ -372,9 +382,9 @@ static void output_mode(void*, wl_output*, uint32_t, int32_t, int32_t, int32_t) 
 static void output_done(void*, wl_output*) {}
 
 static void output_scale(void* data, wl_output*, int32_t factor) {
-    auto& a = *static_cast<App*>(data);
-    a.output_scale = factor > 0 ? factor : 1;
-    sync_buffer_scale(a);
+    auto& b = *static_cast<Bar*>(data);
+    b.output_scale = factor > 0 ? factor : 1;
+    sync_buffer_scale(b);
 }
 
 static const wl_output_listener output_listener = {
@@ -399,10 +409,13 @@ static void registry_add(void* data, wl_registry* reg, uint32_t name,
     } else if (strcmp(iface, wl_shm_interface.name) == 0) {
         a.shm = static_cast<wl_shm*>(
             wl_registry_bind(reg, name, &wl_shm_interface, 1));
-    } else if (strcmp(iface, wl_output_interface.name) == 0 && !a.output) {
-        a.output = static_cast<wl_output*>(
+    } else if (strcmp(iface, wl_output_interface.name) == 0) {
+        auto bar = std::make_unique<Bar>();
+        bar->app = &a;
+        bar->output = static_cast<wl_output*>(
             wl_registry_bind(reg, name, &wl_output_interface, 1));
-        wl_output_add_listener(a.output, &output_listener, &a);
+        wl_output_add_listener(bar->output, &output_listener, bar.get());
+        a.bars.push_back(std::move(bar));
     } else if (strcmp(iface, zwlr_layer_shell_v1_interface.name) == 0) {
         a.layer_shell = static_cast<zwlr_layer_shell_v1*>(
             wl_registry_bind(reg, name, &zwlr_layer_shell_v1_interface, 1));
@@ -416,11 +429,32 @@ static const wl_registry_listener registry_listener = {
     .global_remove = registry_remove,
 };
 
+static void create_layer_surface(App& a, Bar& b) {
+    b.surface = wl_compositor_create_surface(a.compositor);
+    b.layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+        a.layer_shell, b.surface, b.output,
+        ZWLR_LAYER_SHELL_V1_LAYER_TOP, "minibar");
+
+    sync_buffer_scale(b);
+    wl_surface_set_buffer_scale(b.surface, b.buffer_scale);
+
+    zwlr_layer_surface_v1_add_listener(b.layer_surface, &layer_surface_listener, &b);
+    zwlr_layer_surface_v1_set_anchor(
+        b.layer_surface,
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
+    zwlr_layer_surface_v1_set_size(b.layer_surface, 0, b.height);
+    zwlr_layer_surface_v1_set_exclusive_zone(b.layer_surface, b.height);
+    zwlr_layer_surface_v1_set_margin(b.layer_surface, 0, 0, 0, 0);
+    wl_surface_commit(b.surface);
+}
+
 int main() {
     App a{};
 
-    // Connect to the compositor, discover globals, then create a layer-shell
-    // surface anchored to the top edge of the chosen output.
+    // Connect to the compositor, discover globals, then create one layer-shell
+    // surface anchored to the top edge of each output.
     a.display = wl_display_connect(nullptr);
     if (!a.display) {
         std::cerr << "failed to connect to wayland\n";
@@ -436,30 +470,24 @@ int main() {
         return 1;
     }
 
-    a.surface = wl_compositor_create_surface(a.compositor);
-    a.layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        a.layer_shell, a.surface, a.output,
-        ZWLR_LAYER_SHELL_V1_LAYER_TOP, "minibar");
     a.hypr_fd = connect_hypr_socket2();
-    sync_buffer_scale(a);
 
-    zwlr_layer_surface_v1_add_listener(a.layer_surface, &layer_surface_listener, &a);
-    zwlr_layer_surface_v1_set_anchor(
-        a.layer_surface,
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
-    zwlr_layer_surface_v1_set_size(a.layer_surface, 0, a.height);
-    zwlr_layer_surface_v1_set_exclusive_zone(a.layer_surface, a.height);
-    zwlr_layer_surface_v1_set_margin(a.layer_surface, 0, 0, 0, 0);
-    wl_surface_commit(a.surface);
+    if (a.bars.empty()) {
+        auto bar = std::make_unique<Bar>();
+        bar->app = &a;
+        a.bars.push_back(std::move(bar));
+    }
+
+    for (auto& bar : a.bars) create_layer_surface(a, *bar);
     wl_display_roundtrip(a.display);
 
     int wl_fd = wl_display_get_fd(a.display);
     int stdin_fd = fileno(stdin);
 
     while (a.running) {
-        if (a.redraw) draw(a);
+        for (auto& bar : a.bars) {
+            if (bar->redraw) draw(a, *bar);
+        }
 
         wl_display_flush(a.display);
 
@@ -487,7 +515,7 @@ int main() {
                 a.running = false;
             } else {
                 update_bar_text(a, line);
-                a.redraw = true;
+                for (auto& bar : a.bars) bar->redraw = true;
             }
         }
 
@@ -502,10 +530,12 @@ int main() {
 
     // Tear down in reverse order of ownership so Wayland objects do not outlive
     // the connection they were created from.
-    destroy_buffer(a.buf);
-    if (a.layer_surface) zwlr_layer_surface_v1_destroy(a.layer_surface);
-    if (a.surface) wl_surface_destroy(a.surface);
-    if (a.output) wl_output_destroy(a.output);
+    for (auto& bar : a.bars) {
+        destroy_buffer(bar->buf);
+        if (bar->layer_surface) zwlr_layer_surface_v1_destroy(bar->layer_surface);
+        if (bar->surface) wl_surface_destroy(bar->surface);
+        if (bar->output) wl_output_destroy(bar->output);
+    }
     if (a.hypr_fd >= 0) close(a.hypr_fd);
     if (a.layer_shell) zwlr_layer_shell_v1_destroy(a.layer_shell);
     if (a.shm) wl_shm_destroy(a.shm);

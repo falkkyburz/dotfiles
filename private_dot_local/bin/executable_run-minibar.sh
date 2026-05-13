@@ -200,8 +200,8 @@ mem() {
   pct=$((used * 100 / total))
   raw="$pct"
 
-  if ((pct > 95)); then
-    printf '%s %s%%' "$(markup "$c_red" '󰘚')" "$(sanitize "$raw")"
+  if ((pct > 75)); then
+    printf '󰘚 %s%%' "$(markup "$c_red" "$raw")"
     return
   fi
 
@@ -302,7 +302,7 @@ cpu() {
   fi
 
   if [[ "$raw" =~ ^[0-9]+$ ]] && ((raw > 95)); then
-    cpu_s="$(printf '󰍛 %s' "$(markup "$c_red" "$display%")")"
+    cpu_s="$(printf '󰍛 %s%%' "$(markup "$c_red" "$display")")"
     return 0
   fi
 

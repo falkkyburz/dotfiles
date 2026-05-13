@@ -53,7 +53,7 @@ PACMAN_PKGS=(
 
   # development
   gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo sqlite postgresql
-  qalculate-gtk libqalculate gnuplot
+  qalculate-gtk libqalculate gnuplot cloc
 
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
@@ -75,7 +75,8 @@ AUR_PKGS=(
   satty
   can-utils-git
   xdg-terminal-exec
-  opencode
+  opencode-bin
+  opencode-desktop-bin
   unixcw
   neovim-git
   nordvpn-bin
