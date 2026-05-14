@@ -61,15 +61,15 @@ battery_icon() {
   ((c > 100)) && c=100
 
   if [[ "$status" == 'Charging' ]]; then
-    ((c <= 10)) && { printf '󰢜'; return; }
-    ((c <= 20)) && { printf '󰂆'; return; }
-    ((c <= 30)) && { printf '󰂇'; return; }
-    ((c <= 40)) && { printf '󰂈'; return; }
-    ((c <= 50)) && { printf '󰢝'; return; }
-    ((c <= 60)) && { printf '󰂉'; return; }
-    ((c <= 70)) && { printf '󰂊'; return; }
-    ((c <= 80)) && { printf '󰂋'; return; }
-    ((c <= 90)) && { printf '󰂌'; return; }
+    ((c <= 10)) && { printf '󰢟'; return; }
+    ((c <= 20)) && { printf '󰢜'; return; }
+    ((c <= 30)) && { printf '󰂆'; return; }
+    ((c <= 40)) && { printf '󰂇'; return; }
+    ((c <= 50)) && { printf '󰂈'; return; }
+    ((c <= 60)) && { printf '󰢝'; return; }
+    ((c <= 70)) && { printf '󰂉'; return; }
+    ((c <= 80)) && { printf '󰂊'; return; }
+    ((c <= 90)) && { printf '󰂋'; return; }
     printf '󰂅'
     return
   fi
@@ -206,6 +206,51 @@ monitor_bar_state() {
   monitor_workspace_title_rows | sort
 }
 
+hypr_event_name() {
+  printf '%s' "${1%%>>*}"
+}
+
+is_hypr_bar_event() {
+  case "$(hypr_event_name "$1")" in
+    workspace*|focusedmon*|activewindow*|windowtitle*|openwindow|closewindow|movewindow*|changefloatingmode|fullscreen|monitoradded|monitorremoved|renamemonitor)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+start_hypr_events() {
+  local socket sig runtime_dir
+
+  command -v socat >/dev/null 2>&1 || return 1
+  runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  sig="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+  [[ -n "$sig" ]] || return 1
+
+  socket="$runtime_dir/hypr/$sig/.socket2.sock"
+  [[ -S "$socket" ]] || return 1
+
+  hypr_event_fifo="$(mktemp -u "${TMPDIR:-/tmp}/run-minibar-hypr.XXXXXX")"
+  mkfifo "$hypr_event_fifo"
+  exec {hypr_event_fd}<>"$hypr_event_fifo"
+  rm -f "$hypr_event_fifo"
+
+  socat -u "UNIX-CONNECT:$socket" - >&$hypr_event_fd &
+  hypr_event_pid=$!
+  return 0
+}
+
+cleanup() {
+  if [[ -n "${hypr_event_pid:-}" ]]; then
+    kill "$hypr_event_pid" 2>/dev/null || true
+  fi
+
+  if [[ -n "${hypr_event_fd:-}" ]]; then
+    exec {hypr_event_fd}>&- 2>/dev/null || true
+  fi
+}
+
 ws_label() {
   local id="${1:-?}"
   [[ "$id" =~ ^-?[0-9]+$ ]] || id='?'
@@ -252,6 +297,18 @@ bat() {
   done
 
   printf '󰁹 %s' "$(sanitize 'n/a')"
+}
+
+pow() {
+  local uwatt watt
+  if [[ -d "/sys/class/power_supply/BAT0" ]]; then
+    read -r uwatt < "/sys/class/power_supply/BAT0/power_now"
+    watt="$(($uwatt/1000000))"
+    printf '󰥜 %2uW' "$watt"
+    return 0
+  fi
+
+  return 0
 }
 
 bt() {
@@ -407,13 +464,14 @@ clock() {
 }
 
 emit_for_monitors() {
-  local rows mon ws_id title_s left right
-  rows="$(monitor_workspace_title_rows)"
-  right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$bat_s")"
+  local rows mon ws_id title_s left right error_flag=''
+  rows="${1:-}"
+  right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$pow_s" "$bat_s")"
+  (( ${hypr_error:-0} )) && error_flag="$(markup "$c_red" '✗')"
 
   if [[ -z "$rows" ]]; then
     printf '%s%s%s%s%s\n' \
-      "$(join_nonempty "$(ws_label '?')" "$med_s")" \
+      "$(join_nonempty "$error_flag" "$(ws_label '?')" "$med_s")" \
       "$field_sep" \
       "$tim_s" \
       "$field_sep" \
@@ -424,7 +482,7 @@ emit_for_monitors() {
   while IFS=$'\t' read -r mon ws_id title_s; do
     [[ -n "$mon" ]] || continue
     title_s="$(sanitize "$(short "$title_s" 40)")"
-    left="$(join_nonempty "$(ws_label "$ws_id")" "$title_s" "$med_s")"
+    left="$(join_nonempty "$error_flag" "$(ws_label "$ws_id")" "$title_s" "$med_s")"
     printf '%s%s%s%s%s%s%s\n' \
       "$mon" \
       "$field_sep" \
@@ -436,11 +494,14 @@ emit_for_monitors() {
   done <<< "$rows"
 }
 
-bar_state="$(monitor_bar_state)"
+trap cleanup EXIT INT TERM
+
+bar_state=''
 mem_s="$(mem)"
 net
 bt_s="$(bt)"
 bat_s="$(bat)"
+pow_s="$(pow)"
 tim_s="$(clock)"
 med_s="$(media)"
 cpu
@@ -448,24 +509,68 @@ br
 
 net_every=15
 bat_every=5
+pow_every=1
 bt_every=5
+hypr_poll_every=5
 next_net=0
 next_bat=0
+next_pow=0
 next_bt=0
+next_hypr_poll=0
+hypr_dirty=1
+hypr_socket_events=0
+hypr_error=0
+first_redraw=1
+
+if start_hypr_events; then
+  hypr_socket_events=1
+else
+  hypr_error=1
+  hypr_poll_every=1
+fi
 
 while true; do
+  redraw=$first_redraw
+  first_redraw=0
   now="$(date +%s)"
   ntim="$(clock)"
-  new_bar_state="$(monitor_bar_state)"
 
-  if [[ "$new_bar_state" != "$bar_state" ]]; then
-    bar_state="$new_bar_state"
-    redraw=1
+  if (( hypr_socket_events )); then
+    if ! kill -0 "$hypr_event_pid" 2>/dev/null; then
+      hypr_socket_events=0
+      hypr_error=1
+      hypr_poll_every=1
+      hypr_dirty=1
+      redraw=1
+    fi
+
+    for _ in {1..20}; do
+      hypr_event=''
+      IFS= read -r -t 0.001 -u "$hypr_event_fd" hypr_event || break
+      [[ -n "$hypr_event" ]] || break
+
+      if is_hypr_bar_event "$hypr_event"; then
+        hypr_dirty=1
+      fi
+    done
+  fi
+
+  if (( ! hypr_socket_events && now >= next_hypr_poll )); then
+    hypr_dirty=1
+    next_hypr_poll=$((now + hypr_poll_every))
+  fi
+
+  if (( hypr_dirty )); then
+    new_bar_state="$(monitor_bar_state)"
+    if [[ "$new_bar_state" != "$bar_state" ]]; then
+      bar_state="$new_bar_state"
+      redraw=1
+    fi
+    hypr_dirty=0
   fi
 
   if [[ "${last:-}" != "$now" ]]; then
     last="$now"
-    bar_state="$(monitor_bar_state)"
     cpu
     br
     mem_s="$(mem)"
@@ -498,9 +603,16 @@ while true; do
     bat_s="$nbat"
     next_bat=$((now + bat_every))
   fi
+  
+  if (( now >= next_pow )); then
+    npow="$(pow)"
+    [[ "$npow" != "$pow_s" ]] && redraw=1
+    pow_s="$npow"
+    next_pow=$((now + pow_every))
+  fi
 
   if (( ${redraw:-1} )); then
-    emit_for_monitors
+    emit_for_monitors "$bar_state"
     redraw=0
   fi
 
