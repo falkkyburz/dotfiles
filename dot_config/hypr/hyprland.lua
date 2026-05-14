@@ -204,7 +204,7 @@ hl.device({
 -- {{{ binds
 
 hl.bind(mainMod .. ' + Return',    hl.dsp.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"'), { description = 'Open terminal' })
-hl.bind(mainMod .. ' + X',         hl.dsp.window.kill(),                                          { description = 'Close active window' })
+hl.bind(mainMod .. ' + X',         hl.dsp.window.close(),                                          { description = 'Close active window' })
 hl.bind(
     mainMod .. ' + M',
     hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"),

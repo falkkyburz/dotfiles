@@ -304,7 +304,7 @@ pow() {
   if [[ -d "/sys/class/power_supply/BAT0" ]]; then
     read -r uwatt < "/sys/class/power_supply/BAT0/power_now"
     watt="$(($uwatt/1000000))"
-    printf '󰥜 %2uW' "$watt"
+    printf ' %2uW' "$watt"
     return 0
   fi
 
@@ -418,7 +418,7 @@ br() {
     rxb=$(< /sys/class/net/$iface/statistics/rx_bytes)
     txb=$(< /sys/class/net/$iface/statistics/tx_bytes)
     brt=$(date +%s%3N)
-    br_s='▼0 ▲0'
+    br_s='󰜮0 󰜷0'
     return 0
   fi
 
@@ -441,7 +441,7 @@ br() {
   elif (( $txkbit < 1000000000 )); then txsym=G txkbit=$(($txkbit/1000000))
   fi
 
-  br_s="$(printf '▼%3s%s ▲%3s%s' "$rxkbit" "$rxsym" "$txkbit" "$txsym")"
+  br_s="$(printf '󰜮%3s%s 󰜷%3s%s' "$rxkbit" "$rxsym" "$txkbit" "$txsym")"
 
   return 0
 }
