@@ -300,11 +300,12 @@ bat() {
 }
 
 pow() {
-  local uwatt watt
+  local uwatt dwatt watt
   if [[ -d "/sys/class/power_supply/BAT0" ]]; then
     read -r uwatt < "/sys/class/power_supply/BAT0/power_now"
     watt="$(($uwatt/1000000))"
-    printf ' %2uW' "$watt"
+    dwatt="$((($uwatt-($watt*1000000))/100000))"
+    printf ' %2u.%uW' "$watt" "$dwatt"
     return 0
   fi
 
