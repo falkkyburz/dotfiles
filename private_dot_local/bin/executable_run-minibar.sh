@@ -175,13 +175,35 @@ nmcli_net_state() {
     '
 }
 
-monitor_workspace_rows() {
-  hyprctl monitors -j 2>/dev/null |
-    jq -r '.[] | [.name, ((.activeWorkspace.id // "?") | tostring)] | @tsv' 2>/dev/null || true
+monitor_workspace_title_rows() {
+  local monitors clients
+
+  monitors="$(hyprctl monitors -j 2>/dev/null || printf '[]')"
+  clients="$(hyprctl clients -j 2>/dev/null || printf '[]')"
+
+  jq -r --argjson clients "$clients" '
+    .[] as $mon |
+    (
+      $clients
+      | map(select(
+          .monitor == $mon.id and
+          .workspace.id == $mon.activeWorkspace.id and
+          .visible == true and
+          .hidden == false
+        ))
+      | sort_by(.focusHistoryID // 999999)
+      | first
+    ) as $client |
+    [
+      $mon.name,
+      (($mon.activeWorkspace.id // "?") | tostring),
+      ($client.title // "")
+    ] | @tsv
+  ' <<< "$monitors" 2>/dev/null || true
 }
 
-monitor_ws_state() {
-  monitor_workspace_rows | sort
+monitor_bar_state() {
+  monitor_workspace_title_rows | sort
 }
 
 ws_label() {
@@ -367,17 +389,6 @@ br() {
   return 0
 }
 
-title() {
-  local info
-  info="$(hyprctl activewindow -j | jq -r '.title' 2>/dev/null)"
-  if [[ -n "$info" && "$info" != 'null' ]]; then
-    printf '%s' "$(sanitize "$(short "$info" 40)")"
-    return 0
-  fi
-
-  return 0
-}
-
 media() {
   local info status
   info="$(playerctl metadata --format '{{ artist }} - {{ title }}' 2>/dev/null)"
@@ -391,17 +402,18 @@ media() {
 }
 
 clock() {
-  printf '%s' "$(sanitize "$(date '+%a %Y-%m-%d %H:%M')")"
+  printf ' %s  %s' "$(sanitize "$(date '+%a %Y-%m-%d')")" "$(sanitize "$(date '+%H:%M')")"
+
 }
 
 emit_for_monitors() {
-  local rows mon ws_id left right
-  rows="$(monitor_workspace_rows)"
+  local rows mon ws_id title_s left right
+  rows="$(monitor_workspace_title_rows)"
   right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$bat_s")"
 
   if [[ -z "$rows" ]]; then
     printf '%s%s%s%s%s\n' \
-      "$(join_nonempty "$(ws_label '?')" "$title_s" "$med_s")" \
+      "$(join_nonempty "$(ws_label '?')" "$med_s")" \
       "$field_sep" \
       "$tim_s" \
       "$field_sep" \
@@ -409,8 +421,9 @@ emit_for_monitors() {
     return
   fi
 
-  while IFS=$'\t' read -r mon ws_id; do
+  while IFS=$'\t' read -r mon ws_id title_s; do
     [[ -n "$mon" ]] || continue
+    title_s="$(sanitize "$(short "$title_s" 40)")"
     left="$(join_nonempty "$(ws_label "$ws_id")" "$title_s" "$med_s")"
     printf '%s%s%s%s%s%s%s\n' \
       "$mon" \
@@ -423,13 +436,12 @@ emit_for_monitors() {
   done <<< "$rows"
 }
 
-ws_state="$(monitor_ws_state)"
+bar_state="$(monitor_bar_state)"
 mem_s="$(mem)"
 net
 bt_s="$(bt)"
 bat_s="$(bat)"
 tim_s="$(clock)"
-title_s="$(title)"
 med_s="$(media)"
 cpu
 br
@@ -444,21 +456,20 @@ next_bt=0
 while true; do
   now="$(date +%s)"
   ntim="$(clock)"
-  nws="$(monitor_ws_state)"
+  new_bar_state="$(monitor_bar_state)"
 
-  if [[ "$nws" != "$ws_state" ]]; then
-    ws_state="$nws"
+  if [[ "$new_bar_state" != "$bar_state" ]]; then
+    bar_state="$new_bar_state"
     redraw=1
   fi
 
   if [[ "${last:-}" != "$now" ]]; then
     last="$now"
-    ws_state="$(monitor_ws_state)"
+    bar_state="$(monitor_bar_state)"
     cpu
     br
     mem_s="$(mem)"
     med_s="$(media)"
-    title_s="$(title)"
     redraw=1
   fi
 

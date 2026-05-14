@@ -42,7 +42,7 @@ PACMAN_PKGS=(
   firefox chromium libfido2 speech-dispatcher
 
   # audio / video
-  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity playerctl
+  alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity playerctl wayvnc
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
@@ -82,6 +82,7 @@ AUR_PKGS=(
   nordvpn-bin
   qutebrowser-git
   ttf-noto-emoji-monochrome
+  wvkbd-git
 )
 
 install_pacman() {

@@ -84,7 +84,7 @@ table inet filter {
     ct state {established, related} accept comment "allow tracked connections"
     iif lo accept comment "allow from loopback"
     meta l4proto { icmp, icmpv6 } accept comment "allow icmp"
-    #tcp dport ssh accept comment "allow sshd"
+    tcp dport ssh accept comment "allow sshd"
     pkttype host limit rate 5/second counter reject with icmpx type admin-prohibited
     counter
   }

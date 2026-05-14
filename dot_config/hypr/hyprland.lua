@@ -36,6 +36,7 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('~/.local/bin/battery_notify.sh')
     hl.exec_cmd('~/.local/bin/charger_notify.sh')
     hl.exec_cmd('~/.local/bin/run-minibar.sh')
+    hl.exec_cmd('wvkbd-deskintl --hidden')
 
     -- Apps
     hl.exec_cmd('firefox')
@@ -227,6 +228,7 @@ hl.bind('SHIFT + Print',           hl.dsp.exec_cmd('~/.local/bin/screenrecord.sh
 hl.bind(mainMod .. ' + SHIFT + P', hl.dsp.exec_cmd('~/.local/bin/powerprofilesctl_menu.sh'),      { description = 'Open power mode menu' })
 hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),              { description = 'Open clipboard history' })
 hl.bind(mainMod .. ' + K',         hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
+hl.bind(mainMod .. ' + SHIFT + K',   hl.dsp.exec_cmd('pkill -RTMIN -x wvkbd-deskintl'),             { description = 'Toggle screen keyboard' })
 
 hl.bind(mainMod .. ' + Left',    hl.dsp.focus({ direction = 'left' }),  { description = 'Move focus left' })
 hl.bind(mainMod .. ' + Right',   hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
