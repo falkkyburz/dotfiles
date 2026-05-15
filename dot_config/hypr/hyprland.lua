@@ -212,8 +212,8 @@ hl.bind(
     { description = 'Close hyprland' }
 )
 hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('thunar'),                                     { description = 'Open file explorer' })
-hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('nm-connection-editor'),                       { description = 'Open NM Connection Editor' })
-hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),   { description = 'Open Impala wifi TUI' })
+hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                       { description = 'Open NM Connection Editor' })
+hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),   { description = 'Open Impala wifi TUI' })
 hl.bind(mainMod .. ' + R',         hl.dsp.exec_cmd('qalculate-gtk'),                              { description = 'Open Qalculate' })
 hl.bind(mainMod .. ' + O',         hl.dsp.exec_cmd('kitty --class kitty_status sh -c ~/.local/bin/status_show.sh'), { description = 'Show general status' })
 hl.bind(mainMod .. ' + I',         hl.dsp.exec_cmd('kitty --class kitty_nmcli nmcli'),            { description = 'Show network status' })
