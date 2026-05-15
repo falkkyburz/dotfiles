@@ -99,6 +99,16 @@ start_or_enable_user() {
 }
 
 main() {
+  write_root_file /etc/NetworkManager/conf.d/wifi_backend.conf 0644 root root <<'EOF'
+[device]
+wifi.backend=iwd
+EOF
+
+  write_root_file /etc/iwd/main.conf 0644 root root <<'EOF'
+[General]
+AddressRandomization=once
+EOF
+
   if ((systemd_units_changed)); then
     run_as_root systemctl daemon-reload
   fi
@@ -112,6 +122,10 @@ main() {
 
   if pacman -Q networkmanager >/dev/null 2>&1; then
     SYSTEM_UNITS+=(NetworkManager.service)
+  fi
+
+  if pacman -Q iwd >/dev/null 2>&1; then
+    SYSTEM_UNITS+=(iwd.service)
   fi
 
   for unit in "${SYSTEM_UNITS[@]}"; do

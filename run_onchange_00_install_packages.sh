@@ -58,8 +58,8 @@ PACMAN_PKGS=(
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
 
-  # nm gui tools (installed per your earlier list)
-  network-manager-applet nm-connection-editor wpa_supplicant
+  # NetworkManager with iwd wifi backend
+  networkmanager network-manager-applet nm-connection-editor iwd impala
 
   # Docker / VM
   docker docker-compose docker-buildx lazydocker

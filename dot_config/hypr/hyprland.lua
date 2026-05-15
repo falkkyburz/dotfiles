@@ -25,7 +25,8 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('hyprpaper')
     hl.exec_cmd('hyprsunset')
     hl.exec_cmd('hyprpm reload')
-    hl.exec_cmd('hyprlauncher -d')
+    hl.exec_cmd("env -u HL_INITIAL_WORKSPACE_TOKEN hyprlauncher -d")
+    --  hl.exec_cmd('hyprlauncher -d')
     hl.exec_cmd('swaync')
     hl.exec_cmd('swayosd-server')
     hl.exec_cmd('blueman-applet')
@@ -212,7 +213,7 @@ hl.bind(
 )
 hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('thunar'),                                     { description = 'Open file explorer' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('nm-connection-editor'),                       { description = 'Open NM Connection Editor' })
-hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('kitty --class kitty_nmtui --hold nmtui'),     { description = 'Open NM TUI' })
+hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),   { description = 'Open Impala wifi TUI' })
 hl.bind(mainMod .. ' + R',         hl.dsp.exec_cmd('qalculate-gtk'),                              { description = 'Open Qalculate' })
 hl.bind(mainMod .. ' + O',         hl.dsp.exec_cmd('kitty --class kitty_status sh -c ~/.local/bin/status_show.sh'), { description = 'Show general status' })
 hl.bind(mainMod .. ' + I',         hl.dsp.exec_cmd('kitty --class kitty_nmcli nmcli'),            { description = 'Show network status' })
@@ -269,7 +270,9 @@ hl.bind(mainMod .. ' + mouse_down',hl.dsp.focus({ workspace = 'e+1' }), { descri
 hl.bind(mainMod .. ' + mouse_up',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
 
 hl.bind(mainMod .. ' + mouse:272', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
+hl.bind(mainMod .. ' + CONTROL_L', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
 hl.bind(mainMod .. ' + mouse:273', hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
+hl.bind(mainMod .. ' + ALT_L',     hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
 
 hl.bind('XF86AudioRaiseVolume',  hl.dsp.exec_cmd('swayosd-client --output-volume raise'),       { locked = true, repeating = true, description = 'Volume raise' })
 hl.bind('XF86AudioLowerVolume',  hl.dsp.exec_cmd('swayosd-client --output-volume lower'),       { locked = true, repeating = true, description = 'Volume lower' })
@@ -285,6 +288,37 @@ hl.bind('XF86AudioPrev',  hl.dsp.exec_cmd('playerctl previous'),   { locked = tr
 
 hl.bind('SUPER + Equal', hl.dsp.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
 hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
+
+-- test
+hl.bind(mainMod .. ' + F1',         function() hl.dispatch(hl.dsp.focus({ workspace = 105 })) hl.dispatch(hl.dsp.focus({ workspace = 101 })) end)
+hl.bind(mainMod .. ' + F2',         function() hl.dispatch(hl.dsp.focus({ workspace = 106 })) hl.dispatch(hl.dsp.focus({ workspace = 102 })) end)
+hl.bind(mainMod .. ' + F3',         function() hl.dispatch(hl.dsp.focus({ workspace = 107 })) hl.dispatch(hl.dsp.focus({ workspace = 103 })) end)
+hl.bind(mainMod .. ' + F4',         function() hl.dispatch(hl.dsp.focus({ workspace = 108 })) hl.dispatch(hl.dsp.focus({ workspace = 104 })) end)
+hl.bind(mainMod .. ' + F5',         function() hl.dispatch(hl.dsp.focus({ workspace = 101 })) hl.dispatch(hl.dsp.focus({ workspace = 105 })) end)
+hl.bind(mainMod .. ' + F6',         function() hl.dispatch(hl.dsp.focus({ workspace = 102 })) hl.dispatch(hl.dsp.focus({ workspace = 106 })) end)
+hl.bind(mainMod .. ' + F7',         function() hl.dispatch(hl.dsp.focus({ workspace = 103 })) hl.dispatch(hl.dsp.focus({ workspace = 107 })) end)
+hl.bind(mainMod .. ' + F8',         function() hl.dispatch(hl.dsp.focus({ workspace = 104 })) hl.dispatch(hl.dsp.focus({ workspace = 108 })) end)
+hl.bind(mainMod .. ' + SHIFT + F1', hl.dsp.window.move({ workspace = 101 }))
+hl.bind(mainMod .. ' + SHIFT + F2', hl.dsp.window.move({ workspace = 102 }))
+hl.bind(mainMod .. ' + SHIFT + F3', hl.dsp.window.move({ workspace = 103 }))
+hl.bind(mainMod .. ' + SHIFT + F4', hl.dsp.window.move({ workspace = 104 }))
+hl.bind(mainMod .. ' + SHIFT + F5', hl.dsp.window.move({ workspace = 105 }))
+hl.bind(mainMod .. ' + SHIFT + F6', hl.dsp.window.move({ workspace = 106 }))
+hl.bind(mainMod .. ' + SHIFT + F7', hl.dsp.window.move({ workspace = 107 }))
+hl.bind(mainMod .. ' + SHIFT + F8', hl.dsp.window.move({ workspace = 108 }))
+-- et cetera
+hl.workspace_rule({workspace="101", monitor="eDP-1"})
+hl.workspace_rule({workspace="102", monitor="eDP-1"})
+hl.workspace_rule({workspace="103", monitor="eDP-1"})
+hl.workspace_rule({workspace="104", monitor="eDP-1"})
+hl.workspace_rule({workspace="105", monitor="HDMI-A-1"})
+hl.workspace_rule({workspace="106", monitor="HDMI-A-1"})
+hl.workspace_rule({workspace="107", monitor="HDMI-A-1"})
+hl.workspace_rule({workspace="108", monitor="HDMI-A-1"})
+
+
+
+
 
 -- }}}
 
@@ -331,11 +365,11 @@ hl.window_rule({
     size = 'monitor_w*0.25 monitor_h*0.5',
 })
 hl.window_rule({
-    name = 'kitty-nmtui',
-    match = { class = 'kitty_nmtui' },
+    name = 'kitty-impala',
+    match = { class = 'kitty_impala' },
     float = true,
     center = true,
-    size = 'monitor_w*0.5 monitor_h*0.5',
+    size = 'monitor_w*0.5 monitor_h*0.75',
 })
 hl.window_rule({
     name = 'kitty-nmcli',
