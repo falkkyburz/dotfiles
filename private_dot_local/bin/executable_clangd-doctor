@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+set -u
+
+usage() {
+  printf 'Usage: %s [project-dir]\n' "${0##*/}"
+  printf 'Checks clangd project setup and proposes fixes. Defaults to the current directory.\n'
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+project_arg=${1:-.}
+if [[ ! -d "$project_arg" ]]; then
+  printf 'error: project directory does not exist: %s\n' "$project_arg" >&2
+  exit 2
+fi
+
+if ! project_dir=$(cd "$project_arg" 2>/dev/null && pwd -P); then
+  printf 'error: cannot enter project directory: %s\n' "$project_arg" >&2
+  exit 2
+fi
+
+root=$project_dir
+while [[ "$root" != "/" ]]; do
+  if [[ -f "$root/.clangd" || -f "$root/compile_commands.json" || -f "$root/CMakeLists.txt" || -f "$root/CMakePresets.json" || -d "$root/.git" ]]; then
+    break
+  fi
+  root=${root%/*}
+done
+if [[ "$root" == "/" ]]; then
+  root=$project_dir
+fi
+
+status=0
+checks=0
+problems=0
+warnings=0
+
+ok() {
+  checks=$((checks + 1))
+  printf '[ok]   %s\n' "$1"
+}
+
+warn() {
+  checks=$((checks + 1))
+  warnings=$((warnings + 1))
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  checks=$((checks + 1))
+  problems=$((problems + 1))
+  status=1
+  printf '[fail] %s\n' "$1"
+}
+
+note() {
+  printf '       %s\n' "$1"
+}
+
+relpath() {
+  local path=$1
+  if [[ "$path" == "$root" ]]; then
+    printf '.'
+  elif [[ "$path" == "$root"/* ]]; then
+    printf '%s' "${path#"$root/"}"
+  else
+    printf '%s' "$path"
+  fi
+}
+
+proposal_printed=0
+propose_cmake_snippet() {
+  if [[ $proposal_printed -eq 1 ]]; then
+    return
+  fi
+  proposal_printed=1
+  note 'Suggested CMakeLists.txt addition:'
+  note '---'
+  note 'set(CMAKE_EXPORT_COMPILE_COMMANDS ON)'
+  note ''
+  note 'if(CMAKE_EXPORT_COMPILE_COMMANDS)'
+  note '  add_custom_target('
+  note '    clangd_symlink ALL'
+  note '    COMMAND ${CMAKE_COMMAND} -E create_symlink'
+  note '            ${CMAKE_BINARY_DIR}/compile_commands.json'
+  note '            ${CMAKE_SOURCE_DIR}/compile_commands.json'
+  note '    COMMENT "Creating compile_commands.json symlink for clangd"'
+  note '  )'
+  note 'endif()'
+  note '---'
+}
+
+printf 'clangd doctor\n'
+printf 'project: %s\n\n' "$root"
+
+if command -v clangd >/dev/null 2>&1; then
+  ok "clangd is installed: $(command -v clangd)"
+else
+  warn 'clangd was not found in PATH'
+  note 'Install clangd with your package manager so your editor can start the language server.'
+fi
+
+clangd_file="$root/.clangd"
+if [[ -f "$clangd_file" ]]; then
+  ok '.clangd exists'
+else
+  ok '.clangd is not present; this is optional'
+fi
+
+root_cc="$root/compile_commands.json"
+declare -a cc_files=()
+if [[ -f "$root_cc" ]]; then
+  cc_files+=("$root_cc")
+  ok 'compile_commands.json exists at project root'
+else
+  fail 'compile_commands.json is missing at project root'
+  if [[ -f "$root/CMakeLists.txt" ]]; then
+    note 'Suggested fix: add a CMake target that creates the root compile_commands.json symlink.'
+    propose_cmake_snippet
+  fi
+fi
+
+while IFS= read -r -d '' cc; do
+  case "$cc" in
+    "$root_cc") ;;
+    *) cc_files+=("$cc") ;;
+  esac
+done < <(find "$root" -path '*/.git' -prune -o -path '*/.cache' -prune -o -name compile_commands.json -type f -print0 2>/dev/null)
+
+if [[ ${#cc_files[@]} -eq 0 ]]; then
+  fail 'no compile_commands.json files were found'
+  if [[ -f "$root/CMakeLists.txt" ]]; then
+    note 'CMake project detected. Suggested generation command after updating CMakeLists.txt:'
+    note 'cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+    propose_cmake_snippet
+  fi
+else
+  if [[ ${#cc_files[@]} -gt 1 || ! -f "$root_cc" ]]; then
+    printf '\ncompile database candidates:\n'
+    for cc in "${cc_files[@]}"; do
+      printf '  - %s\n' "$(relpath "$cc")"
+    done
+  fi
+
+  if [[ ! -f "$root_cc" ]]; then
+    note 'Existing build databases are valid candidates for the CMake symlink target.'
+  fi
+fi
+
+if [[ -f "$clangd_file" ]]; then
+  if grep -Eq '^[[:space:]]*CompilationDatabase:' "$clangd_file"; then
+    ok '.clangd declares CompileFlags.CompilationDatabase'
+  else
+    warn '.clangd does not declare CompileFlags.CompilationDatabase'
+    note 'Add this block if clangd cannot find your build database:'
+    note 'CompileFlags:'
+    note '  CompilationDatabase: build'
+  fi
+fi
+
+if [[ -f "$root/CMakeLists.txt" ]]; then
+  ok 'CMakeLists.txt exists'
+  if grep -Eq 'CMAKE_EXPORT_COMPILE_COMMANDS[[:space:]]+(ON|TRUE|1)' "$root/CMakeLists.txt"; then
+    ok 'CMake enables CMAKE_EXPORT_COMPILE_COMMANDS'
+  else
+    warn 'CMakeLists.txt does not visibly enable CMAKE_EXPORT_COMPILE_COMMANDS'
+    propose_cmake_snippet
+  fi
+  if grep -Eq 'clangd_symlink|create_symlink.*compile_commands\.json|compile_commands\.json.*create_symlink' "$root/CMakeLists.txt"; then
+    ok 'CMakeLists.txt contains a compile_commands.json symlink target'
+  else
+    warn 'CMakeLists.txt does not contain a compile_commands.json symlink target'
+    propose_cmake_snippet
+  fi
+fi
+
+if [[ -f "$root/CMakePresets.json" ]]; then
+  ok 'CMakePresets.json exists'
+fi
+
+if command -v python3 >/dev/null 2>&1 && [[ ${#cc_files[@]} -gt 0 ]]; then
+  printf '\ncompile database validation:\n'
+  for cc in "${cc_files[@]}"; do
+    python3 - "$cc" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+label = path
+try:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+except Exception as exc:
+    print(f"[fail] {label}: invalid JSON: {exc}")
+    sys.exit(1)
+
+if not isinstance(data, list):
+    print(f"[fail] {label}: top-level JSON value is not an array")
+    sys.exit(1)
+
+missing = []
+bad_entries = 0
+for index, entry in enumerate(data):
+    if not isinstance(entry, dict):
+        bad_entries += 1
+        continue
+    directory = entry.get("directory")
+    file_name = entry.get("file")
+    if not isinstance(directory, str) or not os.path.isdir(directory):
+        missing.append(f"entry {index}: directory missing: {directory!r}")
+    if isinstance(file_name, str):
+        source = file_name if os.path.isabs(file_name) else os.path.join(directory or os.path.dirname(path), file_name)
+        if not os.path.exists(source):
+            missing.append(f"entry {index}: source missing: {file_name!r}")
+    else:
+        missing.append(f"entry {index}: file key missing")
+    if "command" not in entry and "arguments" not in entry:
+        missing.append(f"entry {index}: command/arguments missing")
+
+if bad_entries:
+    print(f"[fail] {label}: {bad_entries} entries are not objects")
+    sys.exit(1)
+if missing:
+    print(f"[fail] {label}: {len(missing)} path/schema problems")
+    for item in missing[:5]:
+        print(f"       {item}")
+    if len(missing) > 5:
+        print(f"       ... {len(missing) - 5} more")
+    sys.exit(1)
+print(f"[ok]   {label}: {len(data)} entries valid")
+PY
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+      status=1
+      problems=$((problems + 1))
+    fi
+  done
+elif [[ ${#cc_files[@]} -gt 0 ]]; then
+  warn 'python3 was not found; skipped compile_commands.json validation'
+fi
+
+printf '\nsummary: %d checks, %d problems, %d warnings\n' "$checks" "$problems" "$warnings"
+exit "$status"

@@ -46,8 +46,7 @@ PACMAN_PKGS=(
 
   # extras
   libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
-  lolcat figlet duf dust ripgrep exiftool rsync bandwhich pkgstats
-
+  lolcat figlet duf dust ripgrep exiftool rsync bandwhich pkgstats sysstat
   # GUI Tools
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
@@ -83,6 +82,7 @@ AUR_PKGS=(
   qutebrowser-git
   ttf-noto-emoji-monochrome
   wvkbd-git
+  obs-wayland-hotkeys-git
 )
 
 install_pacman() {

@@ -194,8 +194,19 @@ monitor_workspace_title_rows() {
       | sort_by(.focusHistoryID // 999999)
       | first
     ) as $client |
+    (
+      $clients
+      | any(.[];
+          .monitor == $mon.id and
+          .workspace.id == $mon.activeWorkspace.id and
+          .visible == true and
+          .hidden == false and
+          (((.fullscreen // 0) != 0) or ((.fullscreenClient // 0) != 0))
+        )
+    ) as $fullscreen |
     [
       $mon.name,
+      (if $fullscreen then "0" else "1" end),
       (($mon.activeWorkspace.id // "?") | tostring),
       ($client.title // "")
     ] | @tsv
@@ -465,7 +476,7 @@ clock() {
 }
 
 emit_for_monitors() {
-  local rows mon ws_id title_s left right error_flag=''
+  local rows mon visible ws_id title_s left right error_flag=''
   rows="${1:-}"
   right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$pow_s" "$bat_s")"
   (( ${hypr_error:-0} )) && error_flag="$(markup "$c_red" '✗')"
@@ -480,12 +491,12 @@ emit_for_monitors() {
     return
   fi
 
-  while IFS=$'\t' read -r mon ws_id title_s; do
+  while IFS=$'\t' read -r mon visible ws_id title_s; do
     [[ -n "$mon" ]] || continue
     title_s="$(sanitize "$(short "$title_s" 40)")"
     left="$(join_nonempty "$error_flag" "$(ws_label "$ws_id")" "$title_s" "$med_s")"
     printf '%s%s%s%s%s%s%s\n' \
-      "$mon" \
+      "output=$(sanitize "$mon") visible=$visible" \
       "$field_sep" \
       "$left" \
       "$field_sep" \
@@ -618,4 +629,4 @@ while true; do
   fi
 
   sleep 0.15
-done | minibar
+done | minibar "$@"

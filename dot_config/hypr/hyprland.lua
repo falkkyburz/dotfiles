@@ -185,6 +185,7 @@ hl.config({
 
         touchpad = {
             natural_scroll = true,
+            disable_while_typing = true,
         },
     },
 })
@@ -194,6 +195,10 @@ hl.gesture({
     direction = 'horizontal',
     action = 'workspace',
 })
+
+hl.gesture({ fingers = 3, direction = "down", action = "close" })
+hl.gesture({ fingers = 3, direction = "up", action = "fullscreen" })
+hl.gesture({ fingers = 3, direction = "up", mods = "SUPER", action = "float" })
 
 hl.device({
     name = 'epic-mouse-v1',
@@ -233,6 +238,7 @@ hl.bind(mainMod .. ' + SHIFT + L', hl.dsp.exec_cmd('~/.local/bin/power_menu.sh')
 hl.bind(mainMod .. ' + ALT + I',   hl.dsp.exec_cmd('~/.local/bin/hypridle_toggle.sh'),            { description = 'Toggle hypridle' })
 hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot.sh'),                 { description = 'Take screenshot' })
 hl.bind('SHIFT + Print',           hl.dsp.exec_cmd('~/.local/bin/screenrecord.sh'),               { description = 'Take screen recording' })
+hl.bind(mainMod .. ' + Page_Up',    hl.dsp.global(':_toggle_recording'),                          { description = 'Toggle OBS recording' })
 hl.bind(mainMod .. ' + SHIFT + P', hl.dsp.exec_cmd('~/.local/bin/powerprofilesctl_menu.sh'),      { description = 'Open power mode menu' })
 hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),              { description = 'Open clipboard history' })
 hl.bind(mainMod .. ' + K',         hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
@@ -289,7 +295,7 @@ hl.bind('XF86AudioPrev',  hl.dsp.exec_cmd('playerctl previous'),   { locked = tr
 hl.bind('SUPER + Equal', hl.dsp.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
 hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
 
--- test
+-- Test Paralled Workspaces
 hl.bind(mainMod .. ' + F1',         function() hl.dispatch(hl.dsp.focus({ workspace = 105 })) hl.dispatch(hl.dsp.focus({ workspace = 101 })) end)
 hl.bind(mainMod .. ' + F2',         function() hl.dispatch(hl.dsp.focus({ workspace = 106 })) hl.dispatch(hl.dsp.focus({ workspace = 102 })) end)
 hl.bind(mainMod .. ' + F3',         function() hl.dispatch(hl.dsp.focus({ workspace = 107 })) hl.dispatch(hl.dsp.focus({ workspace = 103 })) end)
@@ -315,10 +321,6 @@ hl.workspace_rule({workspace="105", monitor="HDMI-A-1"})
 hl.workspace_rule({workspace="106", monitor="HDMI-A-1"})
 hl.workspace_rule({workspace="107", monitor="HDMI-A-1"})
 hl.workspace_rule({workspace="108", monitor="HDMI-A-1"})
-
-
-
-
 
 -- }}}
 

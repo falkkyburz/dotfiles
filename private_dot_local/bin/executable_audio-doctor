@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/wireplumber/default-nodes"
+
+ok() {
+  printf '[ok] %s\n' "$1"
+}
+
+warn() {
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  printf '[fail] %s\n' "$1"
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+check_binary() {
+  local name="$1"
+
+  if have "$name"; then
+    ok "found $name at $(command -v "$name")"
+  else
+    fail "missing $name"
+  fi
+}
+
+check_user_service() {
+  local service="$1"
+
+  if systemctl --user is-active --quiet "$service"; then
+    ok "$service is running"
+  else
+    fail "$service is not running"
+  fi
+}
+
+print_default_sink() {
+  local sink
+
+  if ! have pactl; then
+    warn 'cannot read default sink without pactl'
+    return
+  fi
+
+  sink="$(pactl info 2>/dev/null | awk -F': ' '/^Default Sink:/ {print $2}')"
+  if [[ -n "$sink" ]]; then
+    ok "current default sink: $sink"
+  else
+    warn 'could not determine current default sink'
+  fi
+}
+
+print_configured_defaults() {
+  if [[ ! -f "$STATE_FILE" || ! -s "$STATE_FILE" ]]; then
+    ok 'no persisted WirePlumber configured defaults'
+    return
+  fi
+
+  warn "persisted WirePlumber configured defaults exist in $STATE_FILE"
+  grep '^default\.configured\.' "$STATE_FILE" || true
+}
+
+clear_configured_defaults() {
+  if [[ ! -f "$STATE_FILE" || ! -s "$STATE_FILE" ]] || ! grep -q '^default\.configured\.' "$STATE_FILE"; then
+    return
+  fi
+
+  if ! have wpctl; then
+    fail 'cannot clear configured defaults without wpctl'
+    return
+  fi
+
+  wpctl clear-default
+
+  if [[ -s "$STATE_FILE" ]] && grep -q '^default\.configured\.' "$STATE_FILE"; then
+    warn 'configured defaults still exist; restart WirePlumber or run audio-doctor again'
+  else
+    ok 'cleared WirePlumber configured defaults'
+  fi
+}
+
+print_sinks() {
+  if ! have wpctl; then
+    warn 'cannot list sinks without wpctl'
+    return
+  fi
+
+  printf 'Sinks\n'
+  wpctl status | awk '
+    /^Audio$/ { in_audio = 1; next }
+    /^Video$/ { in_audio = 0 }
+    in_audio && /Sinks:/ { in_sinks = 1; print; next }
+    in_audio && in_sinks && /Sources:/ { in_sinks = 0 }
+    in_audio && in_sinks { print }
+  '
+}
+
+printf 'Audio doctor\n'
+printf '\n'
+
+printf 'Binaries\n'
+check_binary wpctl
+check_binary pactl
+check_binary systemctl
+printf '\n'
+
+printf 'Services\n'
+check_user_service pipewire.service
+check_user_service pipewire-pulse.service
+check_user_service wireplumber.service
+printf '\n'
+
+printf 'Defaults\n'
+print_default_sink
+print_configured_defaults
+clear_configured_defaults
+printf '\n'
+
+print_sinks
+printf '\n'
+
+printf 'Hint\n'
+printf 'If a manual hyprpwcenter selection broke auto-switching, clearing configured defaults is the important fix.\n'
+printf 'If a connected device still does not win automatically, its WirePlumber priority may need an override.\n'

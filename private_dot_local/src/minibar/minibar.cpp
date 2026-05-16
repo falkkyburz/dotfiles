@@ -1,10 +1,9 @@
-#include <fcntl.h>
 #include <poll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstdint>
+#include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -30,6 +29,12 @@ struct Buffer {
     int w = 0, h = 0, stride = 0, size = 0;
 };
 
+struct Color {
+    double r = 0.0;
+    double g = 0.0;
+    double b = 0.0;
+};
+
 struct App;
 
 // Each physical output needs its own layer-shell surface and backing buffer.
@@ -38,6 +43,7 @@ struct Bar {
     wl_output* output = nullptr;
     wl_surface* surface = nullptr;
     zwlr_layer_surface_v1* layer_surface = nullptr;
+    uint32_t registry_name = 0;
 
     Buffer buf{};
     int width = 0;
@@ -47,6 +53,8 @@ struct Bar {
     bool configured = false;
     bool redraw = true;
     bool visible = true;
+    bool closed = false;
+    uint64_t show_at_ms = 0;
 
     std::string output_name;
     std::string left = "[1] 2 3 4";
@@ -66,12 +74,151 @@ struct App {
     std::vector<std::unique_ptr<Bar>> bars;
 
     bool running = true;
-
-    int hypr_fd = -1;
-    std::string hypr_buf;
+    int bar_height = 20;
+    int font_size = 10;
+    Color background{};
+    bool position_top = true;
 };
 
 constexpr char kSectionSeparator = '\x1f';
+constexpr uint64_t kShowAfterFullscreenDelayMs = 100;
+constexpr char kVersion[] = "0.1.0";
+
+enum class ArgsResult {
+    Ok,
+    ExitSuccess,
+    Error,
+};
+
+static uint64_t now_ms() {
+    timespec ts{};
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+}
+
+static void usage() {
+    std::cerr << "usage: minibar [options]\n"
+              << "\n"
+              << "options:\n"
+              << "  -h, --help                 show this help and exit\n"
+              << "  --version                  show version and exit\n"
+              << "  --height N                 bar height in logical pixels (default: 20)\n"
+              << "  --font-size N              font size (default: 10)\n"
+              << "  --background #RRGGBB       background color (default: #141414)\n"
+              << "  --position top|bottom      monitor edge, also accepts up|down (default: top)\n"
+              << "\n"
+              << "stdin protocol:\n"
+              << "  Text updates are read from stdin. Sections are separated by ASCII Unit\n"
+              << "  Separator, byte 0x1f. The three-section form updates every bar:\n"
+              << "\n"
+              << "    left<0x1f>center<0x1f>right\n"
+              << "\n"
+              << "  The four-section form targets one output and starts with a config section\n"
+              << "  containing space-separated key=value pairs:\n"
+              << "\n"
+              << "    output=eDP-1 visible=1<0x1f>left<0x1f>center<0x1f>right\n"
+              << "\n"
+              << "  Supported config keys:\n"
+              << "    output=<name>             Wayland output name to update\n"
+              << "    visible=0|1               hide or show that output's bar\n"
+              << "\n"
+              << "examples:\n"
+              << "  printf 'left\\x1fcenter\\x1fright\\n' | minibar\n"
+              << "  printf 'output=eDP-1 visible=1\\x1fleft\\x1fcenter\\x1fright\\n' | minibar\n";
+}
+
+static bool parse_positive_int(const char* value, int& out) {
+    if (!value || !*value) return false;
+    char* end = nullptr;
+    long n = std::strtol(value, &end, 10);
+    if (*end || n <= 0 || n > 1000) return false;
+    out = (int)n;
+    return true;
+}
+
+static int hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+static bool parse_hex_color(const char* value, Color& out) {
+    if (!value || std::strlen(value) != 7 || value[0] != '#') return false;
+
+    int rgb[3]{};
+    for (int i = 0; i < 3; ++i) {
+        int hi = hex_digit(value[1 + i * 2]);
+        int lo = hex_digit(value[2 + i * 2]);
+        if (hi < 0 || lo < 0) return false;
+        rgb[i] = hi * 16 + lo;
+    }
+
+    out.r = rgb[0] / 255.0;
+    out.g = rgb[1] / 255.0;
+    out.b = rgb[2] / 255.0;
+    return true;
+}
+
+static bool option_value(int argc, char** argv, int& i, const char* arg,
+                         const char* name, const char*& value) {
+    size_t len = std::strlen(name);
+    if (std::strncmp(arg, name, len) != 0) return false;
+
+    if (arg[len] == '=') {
+        value = arg + len + 1;
+        return true;
+    }
+
+    if (arg[len] == '\0' && i + 1 < argc) {
+        value = argv[++i];
+        return true;
+    }
+
+    return false;
+}
+
+static ArgsResult parse_args(App& a, int argc, char** argv) {
+    for (int i = 1; i < argc; ++i) {
+        const char* arg = argv[i];
+        const char* value = nullptr;
+
+        if (std::strcmp(arg, "--help") == 0 || std::strcmp(arg, "-h") == 0) {
+            usage();
+            return ArgsResult::ExitSuccess;
+        }
+
+        if (std::strcmp(arg, "--version") == 0) {
+            std::cout << "minibar " << kVersion << "\n";
+            return ArgsResult::ExitSuccess;
+        }
+
+        if (option_value(argc, argv, i, arg, "--height", value)) {
+            if (parse_positive_int(value, a.bar_height)) continue;
+        } else if (option_value(argc, argv, i, arg, "--font-size", value)) {
+            if (parse_positive_int(value, a.font_size)) continue;
+        } else if (option_value(argc, argv, i, arg, "--fontsize", value)) {
+            if (parse_positive_int(value, a.font_size)) continue;
+        } else if (option_value(argc, argv, i, arg, "--background", value)) {
+            if (parse_hex_color(value, a.background)) continue;
+        } else if (option_value(argc, argv, i, arg, "--position", value)) {
+            if (std::strcmp(value, "top") == 0 || std::strcmp(value, "up") == 0) {
+                a.position_top = true;
+                continue;
+            }
+            if (std::strcmp(value, "bottom") == 0 || std::strcmp(value, "down") == 0) {
+                a.position_top = false;
+                continue;
+            }
+        }
+
+        std::cerr << "invalid option: " << arg << "\n";
+        usage();
+        return ArgsResult::Error;
+    }
+
+    return ArgsResult::Ok;
+}
 
 static int create_shm_file(size_t size) {
     // Wayland shm buffers need a file descriptor the compositor can also map.
@@ -128,13 +275,14 @@ static bool make_buffer(App& a, Bar& b, int w, int h) {
     return b.buf.wl != nullptr;
 }
 
-static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, int scale) {
+static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, int scale,
+                      int font_size) {
     // Pango handles text shaping and markup, then Cairo paints the prepared
     // layout into the shared-memory image.
     PangoLayout* layout = pango_cairo_create_layout(cr);
     pango_layout_set_markup(layout, text.c_str(), -1);
 
-    std::string font_str = "NotoSansM Nerd Font " + std::to_string(10 * scale);
+    std::string font_str = "NotoSansM Nerd Font " + std::to_string(font_size * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
     pango_layout_set_font_description(layout, font);
 
@@ -148,10 +296,10 @@ static void draw_text(cairo_t* cr, const std::string& text, int x, int bar_h, in
     g_object_unref(layout);
 }
 
-static int text_width(cairo_t* cr, const std::string& text, int scale) {
+static int text_width(cairo_t* cr, const std::string& text, int scale, int font_size) {
     PangoLayout* layout = pango_cairo_create_layout(cr);
     pango_layout_set_markup(layout, text.c_str(), -1);
-    std::string font_str = "NotoSansM Nerd Font " + std::to_string(10 * scale);
+    std::string font_str = "NotoSansM Nerd Font " + std::to_string(font_size * scale);
     PangoFontDescription* font = pango_font_description_from_string(font_str.c_str());
     pango_layout_set_font_description(layout, font);
     int tw = 0;
@@ -180,8 +328,10 @@ static void sync_buffer_scale(Bar& b) {
     }
 }
 
+static void create_layer_surface(App& a, Bar& b);
+
 static void set_bar_visible(App& a, Bar& b, bool visible) {
-    if (!b.layer_surface || !b.surface || visible == b.visible) return;
+    if (b.closed || !b.layer_surface || !b.surface || visible == b.visible) return;
 
     b.visible = visible;
 
@@ -210,82 +360,34 @@ static void set_bar_visible(App& a, Bar& b, bool visible) {
     wl_surface_commit(b.surface);
 }
 
-static int connect_hypr_socket2() {
-    // Hyprland exposes a Unix socket with newline-delimited events. We only use
-    // it for fullscreen notifications so the bar can get out of the way.
-    const char* runtime = std::getenv("XDG_RUNTIME_DIR");
-    const char* sig = std::getenv("HYPRLAND_INSTANCE_SIGNATURE");
-    if (!runtime || !sig || !*runtime || !*sig) return -1;
-
-    std::string path = std::string(runtime) + "/hypr/" + sig + "/.socket2.sock";
-
-    int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd < 0) return -1;
-
-    sockaddr_un addr{};
-    if (path.size() >= sizeof(addr.sun_path)) {
-        close(fd);
-        return -1;
+static void request_bar_visible(App& a, Bar& b, bool visible) {
+    if (visible) {
+        if (!b.visible && !b.show_at_ms) b.show_at_ms = now_ms() + kShowAfterFullscreenDelayMs;
+    } else {
+        b.show_at_ms = 0;
+        set_bar_visible(a, b, false);
     }
-    addr.sun_family = AF_UNIX;
-    std::memcpy(addr.sun_path, path.c_str(), path.size() + 1);
-
-    if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        close(fd);
-        return -1;
-    }
-
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags >= 0) fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    return fd;
 }
 
-static void handle_hypr_event(App& a, const std::string& line) {
-    constexpr char prefix[] = "fullscreen>>";
-    constexpr size_t prefix_len = sizeof(prefix) - 1;
-    if (line.rfind(prefix, 0) != 0) return;
-
-    bool fullscreen = line.size() > prefix_len && line[prefix_len] != '0';
-    for (auto& bar : a.bars) set_bar_visible(a, *bar, !fullscreen);
+static void apply_pending_bar_shows(App& a) {
+    uint64_t now = now_ms();
+    for (auto& bar : a.bars) {
+        if (!bar->show_at_ms || now < bar->show_at_ms) continue;
+        bar->show_at_ms = 0;
+        set_bar_visible(a, *bar, true);
+    }
 }
 
-static void handle_hypr_readable(App& a) {
-    if (a.hypr_fd < 0) return;
-
-    // Read as much as is currently available, keep incomplete trailing data in
-    // `hypr_buf`, and dispatch full newline-terminated events one by one.
-    char buf[1024];
-    while (true) {
-        ssize_t n = recv(a.hypr_fd, buf, sizeof(buf), 0);
-        if (n > 0) {
-            a.hypr_buf.append(buf, (size_t)n);
-            size_t pos = 0;
-            while (true) {
-                size_t nl = a.hypr_buf.find('\n', pos);
-                if (nl == std::string::npos) {
-                    a.hypr_buf.erase(0, pos);
-                    break;
-                }
-                handle_hypr_event(a, a.hypr_buf.substr(pos, nl - pos));
-                pos = nl + 1;
-            }
-            continue;
-        }
-
-        if (n == 0) {
-            close(a.hypr_fd);
-            a.hypr_fd = -1;
-            a.hypr_buf.clear();
-            return;
-        }
-
-        if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-
-        close(a.hypr_fd);
-        a.hypr_fd = -1;
-        a.hypr_buf.clear();
-        return;
+static int pending_bar_show_timeout(const App& a) {
+    uint64_t now = now_ms();
+    uint64_t next = 0;
+    for (const auto& bar : a.bars) {
+        if (!bar->show_at_ms) continue;
+        if (!next || bar->show_at_ms < next) next = bar->show_at_ms;
     }
+
+    if (!next) return -1;
+    return next > now ? (int)(next - now) : 0;
 }
 
 static std::vector<std::string> split_fields(const std::string& line) {
@@ -301,6 +403,25 @@ static std::vector<std::string> split_fields(const std::string& line) {
         fields.push_back(line.substr(start, pos - start));
         start = pos + 1;
     }
+}
+
+static std::string config_value(const std::string& config, const std::string& key) {
+    size_t start = 0;
+    while (start < config.size()) {
+        while (start < config.size() && config[start] == ' ') ++start;
+
+        size_t end = config.find(' ', start);
+        if (end == std::string::npos) end = config.size();
+
+        size_t eq = config.find('=', start);
+        if (eq != std::string::npos && eq < end && config.compare(start, eq - start, key) == 0) {
+            return config.substr(eq + 1, end - eq - 1);
+        }
+
+        start = end + 1;
+    }
+
+    return "";
 }
 
 static void set_bar_text(Bar& b, const std::string& left,
@@ -320,14 +441,21 @@ static void update_bar_text(App& a, const std::string& line) {
     }
 
     if (fields.size() == 4) {
-        for (auto& bar : a.bars) {
-            if (bar->output_name == fields[0]) set_bar_text(*bar, fields[1], fields[2], fields[3]);
+        std::string output = config_value(fields[0], "output");
+        if (!output.empty()) {
+            std::string visible = config_value(fields[0], "visible");
+            for (auto& bar : a.bars) {
+                if (bar->output_name != output) continue;
+                if (!visible.empty()) request_bar_visible(a, *bar, visible != "0");
+                set_bar_text(*bar, fields[1], fields[2], fields[3]);
+            }
+            return;
         }
     }
 }
 
 static void draw(App& a, Bar& b) {
-    if (!b.configured || b.width <= 0 || !b.visible) return;
+    if (b.closed || !b.configured || b.width <= 0 || !b.visible) return;
 
     // The layer surface size is in logical coordinates. The backing buffer may
     // be larger when rendering at scale > 1 for HiDPI output.
@@ -346,23 +474,23 @@ static void draw(App& a, Bar& b) {
         CAIRO_FORMAT_ARGB32, b.buf.w, b.buf.h, b.buf.stride);
     cairo_t* cr = cairo_create(s);
 
-    cairo_set_source_rgb(cr, 0.08, 0.08, 0.08);
+    cairo_set_source_rgb(cr, a.background.r, a.background.g, a.background.b);
     cairo_paint(cr);
 
     cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
 
     const int pad = 8;
 
-    int cw = text_width(cr, b.center, b.buffer_scale);
-    int rw = text_width(cr, b.right, b.buffer_scale);
+    int cw = text_width(cr, b.center, b.buffer_scale, a.font_size);
+    int rw = text_width(cr, b.right, b.buffer_scale, a.font_size);
 
     int lx = pad;
     int cx = (b.width - cw) / 2;
     int rx = b.width - rw - pad;
 
-    draw_text(cr, b.left, lx, b.height, b.buffer_scale);
-    draw_text(cr, b.center, cx, b.height, b.buffer_scale);
-    draw_text(cr, b.right, rx, b.height, b.buffer_scale);
+    draw_text(cr, b.left, lx, b.height, b.buffer_scale, a.font_size);
+    draw_text(cr, b.center, cx, b.height, b.buffer_scale, a.font_size);
+    draw_text(cr, b.right, rx, b.height, b.buffer_scale, a.font_size);
     cairo_destroy(cr);
     cairo_surface_destroy(s);
 
@@ -386,7 +514,11 @@ static void layer_surface_configure(void* data, zwlr_layer_surface_v1*, uint32_t
 
 static void layer_surface_closed(void* data, zwlr_layer_surface_v1*) {
     auto& b = *static_cast<Bar*>(data);
-    if (b.app) b.app->running = false;
+    b.closed = true;
+    b.configured = false;
+    b.redraw = false;
+    b.visible = false;
+    b.show_at_ms = 0;
 }
 
 static const zwlr_layer_surface_v1_listener layer_surface_listener = {
@@ -438,10 +570,13 @@ static void registry_add(void* data, wl_registry* reg, uint32_t name,
     } else if (strcmp(iface, wl_output_interface.name) == 0) {
         auto bar = std::make_unique<Bar>();
         bar->app = &a;
+        bar->registry_name = name;
+        bar->height = a.bar_height;
         uint32_t output_version = version < 4 ? version : 4;
         bar->output = static_cast<wl_output*>(
             wl_registry_bind(reg, name, &wl_output_interface, output_version));
         wl_output_add_listener(bar->output, &output_listener, bar.get());
+        if (a.compositor && a.layer_shell) create_layer_surface(a, *bar);
         a.bars.push_back(std::move(bar));
     } else if (strcmp(iface, zwlr_layer_shell_v1_interface.name) == 0) {
         a.layer_shell = static_cast<zwlr_layer_shell_v1*>(
@@ -449,7 +584,25 @@ static void registry_add(void* data, wl_registry* reg, uint32_t name,
     }
 }
 
-static void registry_remove(void*, wl_registry*, uint32_t) {}
+static void destroy_bar(Bar& b) {
+    destroy_buffer(b.buf);
+    if (b.layer_surface) zwlr_layer_surface_v1_destroy(b.layer_surface);
+    if (b.surface) wl_surface_destroy(b.surface);
+    if (b.output) wl_output_destroy(b.output);
+    b.layer_surface = nullptr;
+    b.surface = nullptr;
+    b.output = nullptr;
+}
+
+static void registry_remove(void* data, wl_registry*, uint32_t name) {
+    auto& a = *static_cast<App*>(data);
+    for (auto it = a.bars.begin(); it != a.bars.end(); ++it) {
+        if ((*it)->registry_name != name) continue;
+        destroy_bar(**it);
+        a.bars.erase(it);
+        return;
+    }
+}
 
 static const wl_registry_listener registry_listener = {
     .global = registry_add,
@@ -457,6 +610,9 @@ static const wl_registry_listener registry_listener = {
 };
 
 static void create_layer_surface(App& a, Bar& b) {
+    if (b.layer_surface) return;
+
+    b.closed = false;
     b.surface = wl_compositor_create_surface(a.compositor);
     b.layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         a.layer_shell, b.surface, b.output,
@@ -466,9 +622,12 @@ static void create_layer_surface(App& a, Bar& b) {
     wl_surface_set_buffer_scale(b.surface, b.buffer_scale);
 
     zwlr_layer_surface_v1_add_listener(b.layer_surface, &layer_surface_listener, &b);
+    uint32_t edge_anchor = a.position_top
+        ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
+        : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
     zwlr_layer_surface_v1_set_anchor(
         b.layer_surface,
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+        edge_anchor |
         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
     zwlr_layer_surface_v1_set_size(b.layer_surface, 0, b.height);
@@ -477,8 +636,12 @@ static void create_layer_surface(App& a, Bar& b) {
     wl_surface_commit(b.surface);
 }
 
-int main() {
+int main(int argc, char** argv) {
     App a{};
+
+    ArgsResult args = parse_args(a, argc, argv);
+    if (args == ArgsResult::ExitSuccess) return 0;
+    if (args == ArgsResult::Error) return 2;
 
     // Connect to the compositor, discover globals, then create one layer-shell
     // surface anchored to the top edge of each output.
@@ -497,21 +660,24 @@ int main() {
         return 1;
     }
 
-    a.hypr_fd = connect_hypr_socket2();
-
     if (a.bars.empty()) {
         auto bar = std::make_unique<Bar>();
         bar->app = &a;
+        bar->height = a.bar_height;
         a.bars.push_back(std::move(bar));
     }
 
-    for (auto& bar : a.bars) create_layer_surface(a, *bar);
+    for (auto& bar : a.bars) {
+        if (!bar->layer_surface) create_layer_surface(a, *bar);
+    }
     wl_display_roundtrip(a.display);
 
     int wl_fd = wl_display_get_fd(a.display);
     int stdin_fd = fileno(stdin);
 
     while (a.running) {
+        apply_pending_bar_shows(a);
+
         for (auto& bar : a.bars) {
             if (bar->redraw) draw(a, *bar);
         }
@@ -521,14 +687,12 @@ int main() {
         // One poll loop drives everything:
         // - Wayland socket: compositor events such as configure/scale
         // - stdin: external text updates for the bar contents
-        // - Hyprland socket: fullscreen state changes
-        pollfd fds[3] = {
+        pollfd fds[2] = {
             { .fd = wl_fd, .events = POLLIN, .revents = 0 },
             { .fd = stdin_fd, .events = POLLIN, .revents = 0 },
-            { .fd = a.hypr_fd, .events = POLLIN, .revents = 0 },
         };
 
-        if (poll(fds, 3, -1) < 0) break;
+        if (poll(fds, 2, pending_bar_show_timeout(a)) < 0) break;
 
         if (fds[0].revents & POLLIN) {
             if (wl_display_dispatch(a.display) < 0) break;
@@ -544,25 +708,13 @@ int main() {
                 update_bar_text(a, line);
             }
         }
-
-        if (fds[2].revents & POLLIN) {
-            handle_hypr_readable(a);
-        } else if (fds[2].revents & (POLLHUP | POLLERR | POLLNVAL)) {
-            close(a.hypr_fd);
-            a.hypr_fd = -1;
-            a.hypr_buf.clear();
-        }
     }
 
     // Tear down in reverse order of ownership so Wayland objects do not outlive
     // the connection they were created from.
     for (auto& bar : a.bars) {
-        destroy_buffer(bar->buf);
-        if (bar->layer_surface) zwlr_layer_surface_v1_destroy(bar->layer_surface);
-        if (bar->surface) wl_surface_destroy(bar->surface);
-        if (bar->output) wl_output_destroy(bar->output);
+        destroy_bar(*bar);
     }
-    if (a.hypr_fd >= 0) close(a.hypr_fd);
     if (a.layer_shell) zwlr_layer_shell_v1_destroy(a.layer_shell);
     if (a.shm) wl_shm_destroy(a.shm);
     if (a.compositor) wl_compositor_destroy(a.compositor);
