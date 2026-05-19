@@ -70,6 +70,7 @@ PACMAN_PKGS=(
 
 AUR_PKGS=(
   hyprland-meta-git
+  helium-browser-bin
   localsend
   satty
   can-utils-git
@@ -79,7 +80,6 @@ AUR_PKGS=(
   unixcw
   neovim-git
   nordvpn-bin
-  qutebrowser-git
   ttf-noto-emoji-monochrome
   wvkbd-git
   obs-wayland-hotkeys-git
