@@ -1,5 +1,29 @@
 -- vim: set foldmethod=marker foldlevel=0 nowrap:
 
+-- {{{ functions
+
+local function has_external_monitor()
+    for _, monitor in ipairs(hl.get_monitors()) do
+        if monitor.name ~= 'eDP-1' then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function disable_laptop_screen_if_external()
+    if has_external_monitor() then
+        hl.monitor({ output = 'eDP-1', disabled = true })
+    end
+end
+
+local function enable_laptop_screen()
+    hl.monitor({ output = 'eDP-1', disabled = false, mode = 'preferred', position = 'auto', scale = '1' })
+end
+
+-- }}}
+
 -- {{{ monitor
 
 hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1',    })
@@ -17,6 +41,7 @@ local menu    = 'hyprlauncher'
 -- {{{ autostart
 
 hl.on('hyprland.start', function()
+    hl.config({misc = {initial_workspace_tracking = 0}})
     -- System
     hl.exec_cmd('dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
     hl.exec_cmd('systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
@@ -25,8 +50,7 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('hyprpaper')
     hl.exec_cmd('hyprsunset')
     hl.exec_cmd('hyprpm reload')
-    hl.exec_cmd("env -u HL_INITIAL_WORKSPACE_TOKEN hyprlauncher -d")
-    --  hl.exec_cmd('hyprlauncher -d')
+    hl.exec_cmd("hyprlauncher -d")
     hl.exec_cmd('swaync')
     hl.exec_cmd('swayosd-server')
     hl.exec_cmd('blueman-applet')
@@ -38,6 +62,8 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('~/.local/bin/charger_notify.sh')
     hl.exec_cmd('~/.local/bin/run-minibar.sh')
     hl.exec_cmd('wvkbd-deskintl --hidden')
+
+    hl.config({misc = {initial_workspace_tracking = 1}})
 
     -- Apps
     hl.exec_cmd('firefox')
@@ -176,7 +202,7 @@ hl.config({
         kb_layout = 'us',
         kb_variant = '',
         kb_model = '',
-        kb_options = 'caps:escape',
+        kb_options = 'caps:escape,compose:ralt',
         kb_rules = '',
         repeat_rate = 35,
         repeat_delay = 300,
@@ -234,12 +260,12 @@ hl.bind(mainMod .. ' + P',         hl.dsp.window.pseudo(),                      
 hl.bind(mainMod .. ' + J',         hl.dsp.layout('togglesplit'),                                  { description = 'Toggle window splitting' })
 hl.bind(mainMod .. ' + H',         hl.dsp.exec_cmd('kitty --class kitty_btop --hold btop'),       { description = 'Open btop' })
 hl.bind(mainMod .. ' + L',         hl.dsp.exec_cmd('hyprlock'),                                   { description = 'Lock session' })
-hl.bind(mainMod .. ' + SHIFT + L', hl.dsp.exec_cmd('~/.local/bin/power_menu.sh'),                 { description = 'Open power menu' })
-hl.bind(mainMod .. ' + ALT + I',   hl.dsp.exec_cmd('~/.local/bin/hypridle_toggle.sh'),            { description = 'Toggle hypridle' })
-hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot.sh'),                 { description = 'Take screenshot' })
-hl.bind('SHIFT + Print',           hl.dsp.exec_cmd('~/.local/bin/screenrecord.sh'),               { description = 'Take screen recording' })
+hl.bind(mainMod .. ' + SHIFT + L', hl.dsp.exec_cmd('~/.local/bin/lock-menu', { float = true, center = true, stay_focused = true }),        { description = 'Open power menu' })
+hl.bind(mainMod .. ' + ALT + I',   hl.dsp.exec_cmd('~/.local/bin/idle-menu', { float = true, center = true, stay_focused = true }),        { description = 'Toggle hypridle' })
+hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot-menu', { float = true, center = true, stay_focused = true }),  { description = 'Take screenshot' })
+hl.bind('SHIFT + Print',           hl.dsp.exec_cmd('~/.local/bin/screenrecord-menu', { float = true, center = true, stay_focused = true }), { description = 'Take screen recording' })
 hl.bind(mainMod .. ' + Page_Up',    hl.dsp.global(':_toggle_recording'),                          { description = 'Toggle OBS recording' })
-hl.bind(mainMod .. ' + SHIFT + P', hl.dsp.exec_cmd('~/.local/bin/powerprofilesctl_menu.sh'),      { description = 'Open power mode menu' })
+hl.bind(mainMod .. ' + SHIFT + P', hl.dsp.exec_cmd('~/.local/bin/power-menu', { float = true, center = true, stay_focused = true }),       { description = 'Open power mode menu' })
 hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),              { description = 'Open clipboard history' })
 hl.bind(mainMod .. ' + K',         hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
 hl.bind(mainMod .. ' + SHIFT + K',   hl.dsp.exec_cmd('pkill -RTMIN -x wvkbd-deskintl'),             { description = 'Toggle screen keyboard' })
@@ -280,10 +306,10 @@ hl.bind(mainMod .. ' + CONTROL_L', hl.dsp.window.drag(),   { mouse = true, descr
 hl.bind(mainMod .. ' + mouse:273', hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
 hl.bind(mainMod .. ' + ALT_L',     hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
 
-hl.bind('XF86AudioRaiseVolume',  hl.dsp.exec_cmd('swayosd-client --output-volume raise'),       { locked = true, repeating = true, description = 'Volume raise' })
-hl.bind('XF86AudioLowerVolume',  hl.dsp.exec_cmd('swayosd-client --output-volume lower'),       { locked = true, repeating = true, description = 'Volume lower' })
-hl.bind('XF86AudioMute',         hl.dsp.exec_cmd('swayosd-client --output-volume mute-toggle'), { locked = true, repeating = true, description = 'Output mute toggle' })
-hl.bind('XF86AudioMicMute',      hl.dsp.exec_cmd('swayosd-client --input-volume mute-toggle'),  { locked = true, repeating = true, description = 'Input mute toggle' })
+hl.bind('XF86AudioRaiseVolume',  hl.dsp.exec_cmd('wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+'),       { locked = true, repeating = true, description = 'Volume raise' })
+hl.bind('XF86AudioLowerVolume',  hl.dsp.exec_cmd('wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-'),       { locked = true, repeating = true, description = 'Volume lower' })
+hl.bind('XF86AudioMute',         hl.dsp.exec_cmd('wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle'), { locked = true, repeating = true, description = 'Output mute toggle' })
+hl.bind('XF86AudioMicMute',      hl.dsp.exec_cmd('wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle'),  { locked = true, repeating = true, description = 'Input mute toggle' })
 hl.bind('XF86MonBrightnessUp',   hl.dsp.exec_cmd('swayosd-client --brightness raise'),          { locked = true, repeating = true, description = 'Brightness raise' })
 hl.bind('XF86MonBrightnessDown', hl.dsp.exec_cmd('swayosd-client --brightness lower'),          { locked = true, repeating = true, description = 'Brightness lower' })
 
@@ -294,6 +320,9 @@ hl.bind('XF86AudioPrev',  hl.dsp.exec_cmd('playerctl previous'),   { locked = tr
 
 hl.bind('SUPER + Equal', hl.dsp.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
 hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
+
+hl.bind('switch:on:Lid Switch',  disable_laptop_screen_if_external, { locked = true, description = 'Disable laptop screen when lid is closed' })
+hl.bind('switch:off:Lid Switch', enable_laptop_screen,              { locked = true, description = 'Enable laptop screen when lid is opened' })
 
 -- Test Paralled Workspaces
 hl.bind(mainMod .. ' + F1',         function() hl.dispatch(hl.dsp.focus({ workspace = 105 })) hl.dispatch(hl.dsp.focus({ workspace = 101 })) end)

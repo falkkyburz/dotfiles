@@ -186,18 +186,19 @@ if command -v zsh >/dev/null 2>&1; then
   fi
 fi
 
-# Build and install minibar (idempotent)
-minibar_src="${HOME}/.local/src/minibar"
-minibar_bin="${HOME}/.local/bin/minibar"
+# Build and install dotfiles utilities
+dotfiles_utils_dir="${HOME}/Work/dotfiles-utils"
 
-if [[ -d "$minibar_src" ]]; then
-  install -d -m 0755 "${HOME}/.local/bin"
-  if [[ ! -x "$minibar_bin" ]] || find "$minibar_src" -type f -newer "$minibar_bin" | read -r _; then
-    cmake --preset release -S "$minibar_src" -B "$minibar_src/build/release"
-    cmake --build "$minibar_src/build/release" --parallel
-    install -Dm755 "$minibar_src/build/release/minibar" "$minibar_bin"
-  fi
+if [[ ! -d "$dotfiles_utils_dir" ]]; then
+  git clone https://github.com/falkkyburz/dotfiles-utils.git "$dotfiles_utils_dir"
+elif [[ ! -d "$dotfiles_utils_dir/.git" ]]; then
+  printf '%s exists but is not a git repository\n' "$dotfiles_utils_dir" >&2
+  exit 1
 fi
+
+cmake --preset release -S "$dotfiles_utils_dir"
+cmake --build "$dotfiles_utils_dir/build/release" --parallel
+cmake --install "$dotfiles_utils_dir/build/release"
 
 # Fix thunar default terminal
 mkdir -p "$HOME/.config/xfce4"

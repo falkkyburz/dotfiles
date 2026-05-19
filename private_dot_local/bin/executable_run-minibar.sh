@@ -323,6 +323,39 @@ pow() {
   return 0
 }
 
+idle_inhibit() {
+  local pid pidfile="${XDG_RUNTIME_DIR:-/tmp}/qt-idle-inhibit.pid"
+
+  [[ -r "$pidfile" ]] || return 0
+  read -r pid < "$pidfile" || return 0
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+  kill -0 "$pid" 2>/dev/null || return 0
+
+  printf '󰒳 '
+}
+
+vol() {
+  local vol_raw mic_raw vol_icon mic_icon
+  if command -v wpctl >/dev/null 2>&1; then
+    vol_raw="$(wpctl get-volume @DEFAULT_AUDIO_SINK@)"
+    mic_raw="$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@)"
+    if [[ "$vol_raw" == *"[MUTED]"* ]]; then
+      vol_icon=''
+    else 
+      vol_icon=''
+    fi
+    if [[ "$mic_raw" == *"[MUTED]"* ]]; then
+      mic_icon='󰍭'
+    else 
+      mic_icon='󰍬'
+    fi
+    printf '%s %s %s\n' "$mic_icon" "$vol_icon" "$(awk '{printf "%.0f%%\n", $2 * 100}' <<< "$vol_raw")"
+    return 0
+  fi
+
+  return 0
+}
+
 bt() {
   local _ mac name out=''
   while read -r _ mac name; do
@@ -478,7 +511,7 @@ clock() {
 emit_for_monitors() {
   local rows mon visible ws_id title_s left right error_flag=''
   rows="${1:-}"
-  right="$(join_nonempty "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$pow_s" "$bat_s")"
+  right="$(join_nonempty "$idle_s" "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$vol_s" "$pow_s" "$bat_s")"
   (( ${hypr_error:-0} )) && error_flag="$(markup "$c_red" '✗')"
 
   if [[ -z "$rows" ]]; then
@@ -514,6 +547,8 @@ net
 bt_s="$(bt)"
 bat_s="$(bat)"
 pow_s="$(pow)"
+vol_s="$(vol)"
+idle_s="$(idle_inhibit)"
 tim_s="$(clock)"
 med_s="$(media)"
 cpu
@@ -522,11 +557,15 @@ br
 net_every=15
 bat_every=5
 pow_every=1
+vol_every=1
+idle_every=1
 bt_every=5
 hypr_poll_every=5
 next_net=0
 next_bat=0
 next_pow=0
+next_vol=0
+next_idle=0
 next_bt=0
 next_hypr_poll=0
 hypr_dirty=1
@@ -615,12 +654,26 @@ while true; do
     bat_s="$nbat"
     next_bat=$((now + bat_every))
   fi
-  
+
   if (( now >= next_pow )); then
     npow="$(pow)"
     [[ "$npow" != "$pow_s" ]] && redraw=1
     pow_s="$npow"
     next_pow=$((now + pow_every))
+  fi
+
+  if (( now >= next_vol )); then
+    nvol="$(vol)"
+    [[ "$nvol" != "$vol_s" ]] && redraw=1
+    vol_s="$nvol"
+    next_vol=$((now + vol_every))
+  fi
+
+  if (( now >= next_idle )); then
+    nidle="$(idle_inhibit)"
+    [[ "$nidle" != "$idle_s" ]] && redraw=1
+    idle_s="$nidle"
+    next_idle=$((now + idle_every))
   fi
 
   if (( ${redraw:-1} )); then
