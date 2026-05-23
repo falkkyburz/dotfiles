@@ -366,6 +366,12 @@ bt() {
   printf '󰂱 %s' "$(sanitize "$(short "$out" 40)")"
 }
 
+usb_drive() {
+  udiskie-info -a -o '{is_external}|{is_filesystem}|{is_drive}' 2>/dev/null |
+    awk -F'|' '$1 == "True" && ($2 == "True" || $3 == "True") { found = 1 } END { exit !found }' || return 0
+  printf '󱊞 '
+}
+
 net() {
   local net_type conn ip dev vpn sig='' icon text
   IFS='|' read -r net_type conn ip dev vpn < <(nmcli_net_state)
@@ -491,6 +497,16 @@ br() {
   return 0
 }
 
+pwr() {
+  local profile
+  profile="$(powerprofilesctl get 2>/dev/null)" || return 0
+  case "$profile" in
+    power-saver) printf '󰾆 ' ;;
+    performance) printf '󰓅 ' ;;
+    *) return 0 ;;
+  esac
+}
+
 media() {
   local info status
   info="$(playerctl metadata --format '{{ artist }} - {{ title }}' 2>/dev/null)"
@@ -511,7 +527,7 @@ clock() {
 emit_for_monitors() {
   local rows mon visible ws_id title_s left right error_flag=''
   rows="${1:-}"
-  right="$(join_nonempty "$idle_s" "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$vol_s" "$pow_s" "$bat_s")"
+  right="$(join_nonempty "$pwr_s" "$usb_s" "$idle_s" "$cpu_s" "$mem_s" "$br_s" "$net_s" "$bt_s" "$vol_s" "$pow_s" "$bat_s")"
   (( ${hypr_error:-0} )) && error_flag="$(markup "$c_red" '✗')"
 
   if [[ -z "$rows" ]]; then
@@ -545,8 +561,10 @@ bar_state=''
 mem_s="$(mem)"
 net
 bt_s="$(bt)"
+usb_s="$(usb_drive)"
 bat_s="$(bat)"
 pow_s="$(pow)"
+pwr_s="$(pwr)"
 vol_s="$(vol)"
 idle_s="$(idle_inhibit)"
 tim_s="$(clock)"
@@ -557,16 +575,20 @@ br
 net_every=15
 bat_every=5
 pow_every=1
+pwr_every=5
 vol_every=1
 idle_every=1
 bt_every=5
+usb_every=5
 hypr_poll_every=5
 next_net=0
 next_bat=0
 next_pow=0
+next_pwr=0
 next_vol=0
 next_idle=0
 next_bt=0
+next_usb=0
 next_hypr_poll=0
 hypr_dirty=1
 hypr_socket_events=0
@@ -648,6 +670,13 @@ while true; do
     next_bt=$((now + bt_every))
   fi
 
+  if (( now >= next_usb )); then
+    nusb="$(usb_drive)"
+    [[ "$nusb" != "$usb_s" ]] && redraw=1
+    usb_s="$nusb"
+    next_usb=$((now + usb_every))
+  fi
+
   if (( now >= next_bat )); then
     nbat="$(bat)"
     [[ "$nbat" != "$bat_s" ]] && redraw=1
@@ -660,6 +689,13 @@ while true; do
     [[ "$npow" != "$pow_s" ]] && redraw=1
     pow_s="$npow"
     next_pow=$((now + pow_every))
+  fi
+
+  if (( now >= next_pwr )); then
+    npwr="$(pwr)"
+    [[ "$npwr" != "$pwr_s" ]] && redraw=1
+    pwr_s="$npwr"
+    next_pwr=$((now + pwr_every))
   fi
 
   if (( now >= next_vol )); then

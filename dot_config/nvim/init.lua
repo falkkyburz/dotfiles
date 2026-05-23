@@ -92,6 +92,7 @@ vim.o.scrolloff = 10
 vim.o.confirm = true
 
 -- Tab key behavior
+vim.o.tabstop = 2
 vim.o.expandtab = true
 vim.o.smarttab = true
 
@@ -176,6 +177,16 @@ vim.keymap.set("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" }
 vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrease width" })
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<cr>", { desc = "Make file executable" })
+
+vim.keymap.set('n', '<leader>tn', function()
+  vim.o.background = 'dark'
+  vim.cmd.colorscheme('tokyonight')
+end, { desc = 'TokyoNight night' })
+
+vim.keymap.set('n', '<leader>td', function()
+  vim.o.background = 'light'
+  vim.cmd.colorscheme('tokyonight')
+end, { desc = 'TokyoNight day' })
 
 -- }}}
 

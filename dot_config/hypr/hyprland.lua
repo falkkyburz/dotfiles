@@ -26,7 +26,7 @@ end
 
 -- {{{ monitor
 
-hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1',    })
+hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1', icc = '/home/falk/.local/share/display/NE140FHM_N61_03.icm', sdrsaturation=1.1})
 hl.monitor({ output = '',      mode = 'preferred', position = 'auto-center-up', scale = 'auto', })
 
 -- }}}
@@ -146,23 +146,23 @@ hl.curve('almostLinear',   { type = 'bezier', points = { { 0.5, 0.5 },   { 0.75,
 hl.curve('quick',          { type = 'bezier', points = { { 0.15, 0 },    { 0.1, 1 } }  })
 hl.curve("easy",           { type = "spring", mass = 1, stiffness = 71, dampening = 16 })
 
-hl.animation({ leaf = 'global',        enabled = true, speed = 10,   bezier = 'default' })
-hl.animation({ leaf = 'border',        enabled = true, speed = 5.39, bezier = 'easeOutQuint' })
-hl.animation({ leaf = 'windows',       enabled = true, speed = 4.79, spring = 'easy' })
-hl.animation({ leaf = 'windowsIn',     enabled = true, speed = 4.1,  spring = 'easy',         style = 'popin 87%' })
-hl.animation({ leaf = 'windowsOut',    enabled = true, speed = 1.49, bezier = 'linear',       style = 'popin 87%' })
-hl.animation({ leaf = 'fadeIn',        enabled = true, speed = 1.73, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fadeOut',       enabled = true, speed = 1.46, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fade',          enabled = true, speed = 3.03, bezier = 'quick' })
-hl.animation({ leaf = 'layers',        enabled = true, speed = 3.81, bezier = 'easeOutQuint' })
-hl.animation({ leaf = 'layersIn',      enabled = true, speed = 4,    bezier = 'easeOutQuint', style = 'fade' })
-hl.animation({ leaf = 'layersOut',     enabled = true, speed = 1.5,  bezier = 'linear',       style = 'fade' })
-hl.animation({ leaf = 'fadeLayersIn',  enabled = true, speed = 1.79, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fadeLayersOut', enabled = true, speed = 1.39, bezier = 'almostLinear' })
+hl.animation({ leaf = 'global',        enabled = false, speed = 10,   bezier = 'default' })
+hl.animation({ leaf = 'border',        enabled = false, speed = 5.39, bezier = 'easeOutQuint' })
+hl.animation({ leaf = 'windows',       enabled = false, speed = 4.79, spring = 'easy' })
+hl.animation({ leaf = 'windowsIn',     enabled = false, speed = 4.1,  spring = 'easy',         style = 'popin 87%' })
+hl.animation({ leaf = 'windowsOut',    enabled = false, speed = 1.49, bezier = 'linear',       style = 'popin 87%' })
+hl.animation({ leaf = 'fadeIn',        enabled = false, speed = 1.73, bezier = 'almostLinear' })
+hl.animation({ leaf = 'fadeOut',       enabled = false, speed = 1.46, bezier = 'almostLinear' })
+hl.animation({ leaf = 'fade',          enabled = false, speed = 3.03, bezier = 'quick' })
+hl.animation({ leaf = 'layers',        enabled = false, speed = 3.81, bezier = 'easeOutQuint' })
+hl.animation({ leaf = 'layersIn',      enabled = false, speed = 4,    bezier = 'easeOutQuint', style = 'fade' })
+hl.animation({ leaf = 'layersOut',     enabled = false, speed = 1.5,  bezier = 'linear',       style = 'fade' })
+hl.animation({ leaf = 'fadeLayersIn',  enabled = false, speed = 1.79, bezier = 'almostLinear' })
+hl.animation({ leaf = 'fadeLayersOut', enabled = false, speed = 1.39, bezier = 'almostLinear' })
 hl.animation({ leaf = 'workspaces',    enabled = false, speed = 1.94, bezier = 'almostLinear', style = 'slide' })
 hl.animation({ leaf = 'workspacesIn',  enabled = false, speed = 1.21, bezier = 'almostLinear', style = 'slide' })
 hl.animation({ leaf = 'workspacesOut', enabled = false, speed = 1.94, bezier = 'almostLinear', style = 'slide' })
-hl.animation({ leaf = 'zoomFactor',    enabled = true, speed = 7,    bezier = 'quick' })
+hl.animation({ leaf = 'zoomFactor',    enabled = false, speed = 7,    bezier = 'quick' })
 
 hl.config({
     dwindle = {
@@ -243,6 +243,7 @@ hl.bind(
     { description = 'Close hyprland' }
 )
 hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('thunar'),                                     { description = 'Open file explorer' })
+hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),                  { description = 'Toggle dark/light mode' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                       { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),   { description = 'Open Impala wifi TUI' })
 hl.bind(mainMod .. ' + R',         hl.dsp.exec_cmd('qalculate-gtk'),                              { description = 'Open Qalculate' })
@@ -320,36 +321,6 @@ hl.bind('XF86AudioPrev',  hl.dsp.exec_cmd('playerctl previous'),   { locked = tr
 
 hl.bind('SUPER + Equal', hl.dsp.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
 hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
-
-hl.bind('switch:on:Lid Switch',  disable_laptop_screen_if_external, { locked = true, description = 'Disable laptop screen when lid is closed' })
-hl.bind('switch:off:Lid Switch', enable_laptop_screen,              { locked = true, description = 'Enable laptop screen when lid is opened' })
-
--- Test Paralled Workspaces
-hl.bind(mainMod .. ' + F1',         function() hl.dispatch(hl.dsp.focus({ workspace = 105 })) hl.dispatch(hl.dsp.focus({ workspace = 101 })) end)
-hl.bind(mainMod .. ' + F2',         function() hl.dispatch(hl.dsp.focus({ workspace = 106 })) hl.dispatch(hl.dsp.focus({ workspace = 102 })) end)
-hl.bind(mainMod .. ' + F3',         function() hl.dispatch(hl.dsp.focus({ workspace = 107 })) hl.dispatch(hl.dsp.focus({ workspace = 103 })) end)
-hl.bind(mainMod .. ' + F4',         function() hl.dispatch(hl.dsp.focus({ workspace = 108 })) hl.dispatch(hl.dsp.focus({ workspace = 104 })) end)
-hl.bind(mainMod .. ' + F5',         function() hl.dispatch(hl.dsp.focus({ workspace = 101 })) hl.dispatch(hl.dsp.focus({ workspace = 105 })) end)
-hl.bind(mainMod .. ' + F6',         function() hl.dispatch(hl.dsp.focus({ workspace = 102 })) hl.dispatch(hl.dsp.focus({ workspace = 106 })) end)
-hl.bind(mainMod .. ' + F7',         function() hl.dispatch(hl.dsp.focus({ workspace = 103 })) hl.dispatch(hl.dsp.focus({ workspace = 107 })) end)
-hl.bind(mainMod .. ' + F8',         function() hl.dispatch(hl.dsp.focus({ workspace = 104 })) hl.dispatch(hl.dsp.focus({ workspace = 108 })) end)
-hl.bind(mainMod .. ' + SHIFT + F1', hl.dsp.window.move({ workspace = 101 }))
-hl.bind(mainMod .. ' + SHIFT + F2', hl.dsp.window.move({ workspace = 102 }))
-hl.bind(mainMod .. ' + SHIFT + F3', hl.dsp.window.move({ workspace = 103 }))
-hl.bind(mainMod .. ' + SHIFT + F4', hl.dsp.window.move({ workspace = 104 }))
-hl.bind(mainMod .. ' + SHIFT + F5', hl.dsp.window.move({ workspace = 105 }))
-hl.bind(mainMod .. ' + SHIFT + F6', hl.dsp.window.move({ workspace = 106 }))
-hl.bind(mainMod .. ' + SHIFT + F7', hl.dsp.window.move({ workspace = 107 }))
-hl.bind(mainMod .. ' + SHIFT + F8', hl.dsp.window.move({ workspace = 108 }))
--- et cetera
-hl.workspace_rule({workspace="101", monitor="eDP-1"})
-hl.workspace_rule({workspace="102", monitor="eDP-1"})
-hl.workspace_rule({workspace="103", monitor="eDP-1"})
-hl.workspace_rule({workspace="104", monitor="eDP-1"})
-hl.workspace_rule({workspace="105", monitor="HDMI-A-1"})
-hl.workspace_rule({workspace="106", monitor="HDMI-A-1"})
-hl.workspace_rule({workspace="107", monitor="HDMI-A-1"})
-hl.workspace_rule({workspace="108", monitor="HDMI-A-1"})
 
 -- }}}
 

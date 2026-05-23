@@ -105,6 +105,7 @@ fi
 alias nnna="nnn -H"
 alias activate="source .venv/bin/activate"
 alias t=date -R
+alias cal='cal -m'
 
 # Plugins that are not in the ZSH search path.
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
