@@ -28,3 +28,4 @@ application/vnd.oasis.opendocument.text=writer.desktop
 application/vnd.oasis.opendocument.spreadsheet=calc.desktop
 application/vnd.oasis.opendocument.presentation=impress.desktop
 x-scheme-handler/webcal=helium.desktop
+x-scheme-handler/mailto=helium.desktop
