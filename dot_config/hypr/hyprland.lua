@@ -26,7 +26,7 @@ end
 
 -- {{{ monitor
 
-hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1', icc = '/home/falk/.local/share/display/NE140FHM_N61_03.icm', sdrsaturation=1.1})
+hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1', })
 hl.monitor({ output = '',      mode = 'preferred', position = 'auto-center-up', scale = 'auto', })
 
 -- }}}
