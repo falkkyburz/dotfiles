@@ -1,32 +1,15 @@
 -- vim: set foldmethod=marker foldlevel=0 nowrap:
 
--- {{{ functions
-
-local function has_external_monitor()
-    for _, monitor in ipairs(hl.get_monitors()) do
-        if monitor.name ~= 'eDP-1' then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function disable_laptop_screen_if_external()
-    if has_external_monitor() then
-        hl.monitor({ output = 'eDP-1', disabled = true })
-    end
-end
-
-local function enable_laptop_screen()
-    hl.monitor({ output = 'eDP-1', disabled = false, mode = 'preferred', position = 'auto', scale = '1' })
-end
-
--- }}}
+local util = require("hyprland-util")
 
 -- {{{ monitor
 
-hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto',           scale = '1', })
+local icc_fn = "/home/falk/.local/share/color/profile.icc"
+if util.file_exists(icc_fn) then
+  hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto', scale = '1', icc=icc_fn })
+else
+  hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto', scale = '1', })
+end
 hl.monitor({ output = '',      mode = 'preferred', position = 'auto-center-up', scale = 'auto', })
 
 -- }}}
