@@ -230,7 +230,6 @@ hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                       { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),   { description = 'Open Impala wifi TUI' })
 hl.bind(mainMod .. ' + R',         hl.dsp.exec_cmd('qalculate-gtk'),                              { description = 'Open Qalculate' })
-hl.bind(mainMod .. ' + O',         hl.dsp.exec_cmd('kitty --class kitty_status sh -c ~/.local/bin/status_show.sh'), { description = 'Show general status' })
 hl.bind(mainMod .. ' + I',         hl.dsp.exec_cmd('kitty --class kitty_nmcli nmcli'),            { description = 'Show network status' })
 hl.bind(mainMod .. ' + B',         hl.dsp.exec_cmd('blueman-manager'),                            { description = 'Open bluetooth manager' })
 hl.bind(mainMod .. ' + A',         hl.dsp.exec_cmd('hyprpwcenter'),                               { description = 'Open audio manager' })
