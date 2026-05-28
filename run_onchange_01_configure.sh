@@ -91,6 +91,12 @@ table inet filter {
   chain forward {
     type filter hook forward priority filter
     policy drop
+
+    # Allow Docker bridge networks to forward through the host firewall.
+    iifname "docker0" accept
+    oifname "docker0" ct state {established, related} accept
+    iifname "br-*" accept
+    oifname "br-*" ct state {established, related} accept
   }
   chain output {
     type filter hook output priority filter
