@@ -206,6 +206,20 @@ cmake --preset release -S "$dotfiles_utils_dir"
 cmake --build "$dotfiles_utils_dir/build/release" --parallel
 cmake --install "$dotfiles_utils_dir/build/release"
 
+# Build and install Hyprland screen picker
+hyprscreenpicker_dir="${HOME}/Work/hyprscreenpicker"
+
+if [[ ! -d "$hyprscreenpicker_dir" ]]; then
+  git clone https://github.com/falkkyburz/hyprscreenpicker.git "$hyprscreenpicker_dir"
+elif [[ ! -d "$hyprscreenpicker_dir/.git" ]]; then
+  printf '%s exists but is not a git repository\n' "$hyprscreenpicker_dir" >&2
+  exit 1
+fi
+
+cmake -S "$hyprscreenpicker_dir" -B "$hyprscreenpicker_dir/build/release" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
+cmake --build "$hyprscreenpicker_dir/build/release" --parallel
+cmake --install "$hyprscreenpicker_dir/build/release"
+
 # Fix thunar default terminal
 mkdir -p "$HOME/.config/xfce4"
 grep -qxF 'TerminalEmulator=kitty' "$HOME/.config/xfce4/helpers.rc" 2>/dev/null || \
