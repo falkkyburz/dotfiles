@@ -357,9 +357,11 @@ vol() {
 }
 
 bt() {
-  local _ mac name out=''
-  while read -r _ mac name; do
-    [[ -z "$name" ]] && continue
+  local kind mac name out=''
+  while read -r kind mac name; do
+    [[ "$kind" == 'Device' ]] || continue
+    [[ "$mac" =~ ^([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}$ ]] || continue
+    [[ -n "${name:-}" ]] || continue
     out+="${out:+, }$name"
   done < <(bluetoothctl devices Connected 2>/dev/null || true)
   [[ -n "$out" ]] || return 0
