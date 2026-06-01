@@ -178,15 +178,15 @@ vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrea
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<cr>", { desc = "Make file executable" })
 
-vim.keymap.set('n', '<leader>tn', function()
-  vim.o.background = 'dark'
-  vim.cmd.colorscheme('tokyonight')
-end, { desc = 'TokyoNight night' })
+vim.keymap.set("n", "<leader>tn", function()
+	vim.o.background = "dark"
+	vim.cmd.colorscheme("tokyonight")
+end, { desc = "TokyoNight night" })
 
-vim.keymap.set('n', '<leader>td', function()
-  vim.o.background = 'light'
-  vim.cmd.colorscheme('tokyonight')
-end, { desc = 'TokyoNight day' })
+vim.keymap.set("n", "<leader>td", function()
+	vim.o.background = "light"
+	vim.cmd.colorscheme("tokyonight")
+end, { desc = "TokyoNight day" })
 
 -- }}}
 
@@ -382,7 +382,12 @@ require("lazy").setup({
 				--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
 				--   },
 				-- },
-				-- pickers = {}
+				pickers = {
+					find_files = {
+						hidden = true,
+						no_ignore = false,
+					},
+				},
 				extensions = {
 					["ui-select"] = { require("telescope.themes").get_dropdown() },
 				},

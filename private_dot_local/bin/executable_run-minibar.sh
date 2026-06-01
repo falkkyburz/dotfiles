@@ -21,7 +21,7 @@ sanitize() {
     s/[\x{FE0E}\x{FE0F}\x{200D}]//g;   # selectors, ZWJ
     s/[\x{1F000}-\x{1FAFF}]//g;        # emoji / pictographs
 
-    s/[^\p{L}\p{N}\p{P}\p{Zs}\x{E000}-\x{F8FF}✓✗↓↑←→↔↕▲▼△▽⚠]/ /g;
+    s/[^\p{L}\p{N}\p{P}\p{Zs}\x{E000}-\x{F8FF}~✓✗↓↑←→↔↕▲▼△▽⚠]/ /g;
 
     s/ {2,}/ /g;
     s/^ //;
