@@ -83,9 +83,11 @@ source $ZSH/oh-my-zsh.sh
 
 # Preferred editor for local and remote sessions
 if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='vim'
+#  export EDITOR='vim'
+  export EDITOR="emacsclient -nw -a 'emacs -nw'"
 else
-  export EDITOR='nvim'
+#  export EDITOR='nvim'
+  export VISUAL="emacsclient -c -a emacs"
 fi
 
 # Compilation flags
@@ -112,5 +114,5 @@ source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 [[ -f ~/.env ]] && source ~/.env
 
-path=("$HOME/.local/bin" $path)
+path=("$HOME/.config/emacs/bin" "$HOME/.local/bin" $path)
 export PATH

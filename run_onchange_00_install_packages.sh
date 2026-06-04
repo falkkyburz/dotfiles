@@ -54,6 +54,9 @@ PACMAN_PKGS=(
   gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo sqlite postgresql
   qalculate-gtk libqalculate gnuplot cloc shellcheck
 
+  # Doom Emacs language servers / formatters
+  clang lua-language-server stylua pyright python-black ruff typescript typescript-language-server prettier
+
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
 

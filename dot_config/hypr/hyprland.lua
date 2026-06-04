@@ -44,6 +44,7 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('~/.local/bin/battery-daemon')
     hl.exec_cmd('~/.local/bin/run-minibar.sh')
     hl.exec_cmd('wvkbd-deskintl --hidden')
+    hl.exec_cmd('emacs --daemon')
 
     hl.config({misc = {initial_workspace_tracking = 1}})
 
