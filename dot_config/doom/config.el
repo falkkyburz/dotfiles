@@ -28,8 +28,8 @@
 ;; up, `M-x eval-region' to execute elisp code, and 'M-x doom/reload-font' to
 ;; refresh your font settings. If Emacs still can't find your font, it likely
 ;; wasn't installed correctly. Font issues are rarely Doom issues!
-(setq doom-font (font-spec :family "NotoSansM Nerd Font Mono" :size 14)
-      doom-variable-pitch-font (font-spec :family "Noto Sans" :size 14)
+(setq doom-font (font-spec :family "NotoSansM Nerd Font Mono" :size 16)
+      doom-variable-pitch-font (font-spec :family "Noto Sans" :size 16)
       doom-big-font (font-spec :family "NotoSansM Nerd Font Mono" :size 22))
 
 (after! nerd-icons
@@ -81,3 +81,13 @@
 ;;
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
+;;
+;;
+;; Custom Stuff
+(use-package! drag-stuff
+  :config
+  (drag-stuff-global-mode 1)
+  (map! :n "M-j" #'drag-stuff-down
+        :n "M-k" #'drag-stuff-up
+        :v "M-j" #'drag-stuff-down
+        :v "M-k" #'drag-stuff-up))
