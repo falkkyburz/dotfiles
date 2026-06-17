@@ -1,39 +1,49 @@
 # dotfiles (chezmoi)
 
-Personal dotfiles managed with [chezmoi](https://www.chezmoi.io/).
+Personal Arch Linux workstation dotfiles managed with [chezmoi](https://www.chezmoi.io/).
 
-Target system:
+This is not a generic portable profile. Some managed files intentionally assume this user's paths and workstation layout, including `/home/falk` and `~/Work`.
+
+## Target System
+
 - Arch Linux
-- Hyprland (Wayland)
+- Hyprland on Wayland
 - kitty
-- zsh
+- zsh with Oh My Zsh
 - Neovim
+- PipeWire, WirePlumber, NetworkManager, iwd, Docker, and libvirt
 
-The repository is structured to be reproducible, idempotent, and machine-portable.
+## Managed Areas
 
+- Shell, terminal, editor, browser, MIME, font, and desktop configs under `~/.config`.
+- Hyprland ecosystem config for Hyprland, hypridle, hyprlock, hyprpaper, hyprsunset, hyprlauncher, and xdg-desktop-portal-hyprland.
+- Local helper scripts under `~/.local/bin` for diagnostics, screenshots, screen recording, Hyprland helpers, power menus, and Windows VM helpers.
+- Local data under `~/.local/share`, including wallpapers, desktop entries, sound assets, CMake presets, and Windows Docker/VM files.
+- Run scripts that install Pacman and AUR packages, configure system services, write udev rules, and prepare boot/kernel artifacts.
 
-## Kernel updates with Limine
+`README.md` is ignored by chezmoi and is documentation only.
 
-On this system, `limine-snapper-sync` alone is **not enough** after a kernel update.
-
-### Why
-
-The normal Arch kernel update recreates:
-
-- `/boot/vmlinuz-linux`
-- `/boot/initramfs-linux.img`
-
-But Limine boots the **staged copies** referenced in `/boot/limine.conf`, for example:
-
-- `/boot/<machine-id>/linux/vmlinuz-linux`
-- `/boot/<machine-id>/linux/initramfs-linux.img`
-
-These staged files must be refreshed after each kernel update.
-
-### Safe update sequence
+## Apply
 
 ```bash
-mount | grep ' /boot ' &&
-sudo mkinitcpio -P &&
-sudo limine-entry-tool --add linux /boot/initramfs-linux.img /boot/vmlinuz-linux &&
-sudo limine-snapper-sync
+chezmoi apply
+```
+
+The run scripts assume an Arch system with `pacman` and bootstrap `yay` for AUR packages when needed.
+
+## Boot And Kernel
+
+The current setup provisions mkinitcpio UKI output paths for systemd-boot-style unified kernel images. It writes `/etc/mkinitcpio.d/linux.preset` with these targets:
+
+- `/boot/EFI/Linux/arch-linux.efi`
+- `/boot/EFI/Linux/arch-linux-fallback.efi`
+
+It also seeds `/etc/kernel/cmdline` from the current kernel command line when that file does not exist.
+
+Manual kernel artifact refresh:
+
+```bash
+sudo mkinitcpio -P
+```
+
+This repo no longer configures the old Limine staged-kernel workflow.

@@ -14,7 +14,7 @@ PACMAN_PKGS=(
   unzip tree-sitter-cli moreutils
 
   # keyring
-  kwallet kwallet-pam kwalletmanager fprintd
+  kwallet kwallet-pam kwalletmanager
 
   # bluetooth
   blueman bluez bluez-utils
