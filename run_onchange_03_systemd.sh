@@ -41,6 +41,30 @@ write_root_file() {
   rm -f "$tmp"
 }
 
+write_user_file() {
+  local target="$1"
+  local mode="$2"
+  local desired_meta="${mode#0}"
+  local current_meta=""
+  local tmp
+
+  tmp="$(mktemp)"
+  cat >"$tmp"
+
+  install -d -m 0755 "$(dirname "$target")"
+
+  if [[ -e "$target" ]]; then
+    current_meta="$(stat -c '%a' "$target")"
+    if cmp -s "$tmp" "$target" && [[ "$current_meta" == "$desired_meta" ]]; then
+      rm -f "$tmp"
+      return 0
+    fi
+  fi
+
+  install -m "$mode" "$tmp" "$target"
+  rm -f "$tmp"
+}
+
 
 system_unit_known() {
   systemctl list-unit-files "$1" --no-legend 2>/dev/null | grep -q .
@@ -99,6 +123,18 @@ start_or_enable_user() {
 }
 
 main() {
+  local user_systemd_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+
+  write_user_file "$user_systemd_dir/hyprland-session.target" 0644 <<'EOF'
+[Unit]
+Description=Hyprland compositor session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+Before=graphical-session.target
+EOF
+
   write_root_file /etc/NetworkManager/conf.d/wifi_backend.conf 0644 root root <<'EOF'
 [device]
 wifi.backend=iwd
@@ -112,6 +148,8 @@ EOF
   if ((systemd_units_changed)); then
     run_as_root systemctl daemon-reload
   fi
+
+  systemctl --user daemon-reload
 
   SYSTEM_UNITS=(
     nftables.service
@@ -136,12 +174,17 @@ EOF
     pipewire.service
     pipewire-pulse.service
     wireplumber.service
-    xdg-desktop-portal.service
   )
 
   for unit in "${USER_UNITS[@]}"; do
     start_or_enable_user "$unit"
   done
+
+  if systemctl --user is-active --quiet graphical-session.target; then
+    start_or_enable_user xdg-desktop-portal.service
+  else
+    printf 'Skipping xdg-desktop-portal.service: graphical-session.target is inactive\n'
+  fi
 }
 
 main "$@"

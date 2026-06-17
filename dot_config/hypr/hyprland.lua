@@ -28,6 +28,7 @@ hl.on('hyprland.start', function()
     -- System
     hl.exec_cmd('dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
     hl.exec_cmd('systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_CLASS')
+    hl.exec_cmd('systemctl --user start hyprland-session.target')
     hl.exec_cmd('/usr/lib/pam_kwallet_init')
     hl.exec_cmd('hypridle')
     hl.exec_cmd('hyprpaper')
@@ -37,20 +38,22 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('swaync')
     hl.exec_cmd('swayosd-server')
     hl.exec_cmd('blueman-applet')
-    hl.exec_cmd('systemctl --user start hyprpolkitagent.service')
+    hl.exec_cmd('/usr/lib/hyprpolkitagent')
     hl.exec_cmd('wl-paste --type text --watch cliphist store')
     hl.exec_cmd('wl-paste --type image --watch cliphist store')
     hl.exec_cmd('udiskie')
     hl.exec_cmd('~/.local/bin/battery-daemon')
     hl.exec_cmd('~/.local/bin/run-minibar.sh')
     hl.exec_cmd('wvkbd-deskintl --hidden')
-    hl.exec_cmd('emacs --daemon')
     hl.config({misc = {initial_workspace_tracking = 1}})
 
     -- Apps
-    hl.exec_cmd('emacs', {workspace = '3 silent'})
     hl.exec_cmd('kitty', {workspace = '2 silent'})
     hl.exec_cmd('helium-browser', {workspace = '1'})
+end)
+
+hl.on('hyprland.shutdown', function()
+    hl.exec_cmd('systemctl --user stop hyprland-session.target')
 end)
 
 -- }}}

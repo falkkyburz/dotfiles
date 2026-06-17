@@ -9,7 +9,7 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop zsh less jq github-cli chezmoi age man tree lynx emacs
+  kitty bat btop zsh less jq github-cli chezmoi age man tree lynx
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
   unzip tree-sitter-cli moreutils
 
@@ -53,9 +53,6 @@ PACMAN_PKGS=(
   # development
   gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo sqlite postgresql
   qalculate-gtk libqalculate gnuplot cloc shellcheck
-
-  # Doom Emacs language servers / formatters
-  clang lua-language-server stylua pyright python-black ruff typescript typescript-language-server prettier
 
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat

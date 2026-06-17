@@ -2,10 +2,10 @@
 image/png=gwenview-2.desktop;gwenview.desktop;
 application/x-extension-fcstd=org.freecad.FreeCAD.desktop;
 application/x-shellscript=kitty-open.desktop;nvim.desktop;
-text/plain=emacsclient.desktop;
+text/plain=nvim.desktop;
 
 [Default Applications]
-text/plain=emacsclient.desktop
+text/plain=nvim.desktop
 text/html=helium.desktop
 x-scheme-handler/about=helium.desktop
 x-scheme-handler/http=helium.desktop

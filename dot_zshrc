@@ -81,14 +81,9 @@ source $ZSH/oh-my-zsh.sh
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
-# Preferred editor for local and remote sessions
-if [[ -n $SSH_CONNECTION ]]; then
-#  export EDITOR='vim'
-  export EDITOR="emacsclient -nw -a 'emacs -nw'"
-else
-#  export EDITOR='nvim'
-  export VISUAL="emacsclient -c -a emacs"
-fi
+# Preferred editor
+export EDITOR='nvim'
+export VISUAL='nvim'
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
@@ -114,5 +109,5 @@ source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 [[ -f ~/.env ]] && source ~/.env
 
-path=("$HOME/.config/emacs/bin" "$HOME/.local/bin" $path)
+path=("$HOME/.local/bin" $path)
 export PATH

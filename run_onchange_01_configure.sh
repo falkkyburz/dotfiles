@@ -192,20 +192,6 @@ if command -v zsh >/dev/null 2>&1; then
   fi
 fi
 
-# Install Doom Emacs once
-doom_emacs_dir="${XDG_CONFIG_HOME:-$HOME/.config}/emacs"
-
-if [[ ! -d "$doom_emacs_dir" ]]; then
-  git clone --depth=1 https://github.com/doomemacs/doomemacs.git "$doom_emacs_dir"
-elif [[ ! -d "$doom_emacs_dir/.git" ]]; then
-  printf '%s exists but is not a git repository\n' "$doom_emacs_dir" >&2
-  exit 1
-fi
-
-if [[ ! -d "$doom_emacs_dir/.local" ]]; then
-  "$doom_emacs_dir/bin/doom" install --force
-fi
-
 # Build and install dotfiles utilities
 dotfiles_utils_dir="${HOME}/Work/dotfiles-utils"
 
