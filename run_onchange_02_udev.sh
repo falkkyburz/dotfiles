@@ -48,6 +48,11 @@ if ! getent group "$serial_group" >/dev/null 2>&1; then
   serial_group="dialout"
 fi
 
+usb_group="plugdev"
+if ! getent group "$usb_group" >/dev/null 2>&1; then
+  usb_group="$serial_group"
+fi
+
 target_user="${SUDO_USER:-${USER:-}}"
 target_home=""
 if [[ -n "$target_user" ]]; then
@@ -101,8 +106,8 @@ write_root_file /etc/udev/rules.d/99-usb-sound.rules 0644 root root <<RULES
 SUBSYSTEM=="usb", ACTION=="add", ENV{DEVTYPE}=="usb_device", RUN+="$target_home/.local/bin/usb_notify.sh $target_home/.local/share/sound/ding.wav"
 RULES
 
-write_root_file /etc/udev/rules.d/99-ross-tech-hexv2.rules 0644 root root <<'RULES'
-SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="a0cb", MODE="0666", GROUP="plugdev"
+write_root_file /etc/udev/rules.d/99-ross-tech-hexv2.rules 0644 root root <<RULES
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="a0cb", MODE="0666", GROUP="$usb_group"
 RULES
 
 # Keep current user in serial group when possible.

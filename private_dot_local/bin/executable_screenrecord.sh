@@ -5,7 +5,8 @@ if pkill -INT -x wf-recorder; then
   exit 0
 fi
 
-choice="$(printf "GIF\nMP4\nMP4+Audio\n" | hyprlauncher --dmenu)" || exit 0 [[ -n "${choice:-}" ]] || exit 0
+choice="$(printf "GIF\nMP4\nMP4+Audio\n" | hyprlauncher --dmenu)" || exit 0
+[[ -n "${choice:-}" ]] || exit 0
 
 sleep 0.2
 

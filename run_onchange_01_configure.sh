@@ -1,10 +1,37 @@
 #!/usr/bin/env bash
-# chezmoi: run_onchange_install-packages.sh
+# chezmoi: run_onchange_configure.sh
 set -euo pipefail
 
-current_default_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
-if [[ "$current_default_browser" != "firefox.desktop" ]]; then
-  xdg-settings set default-web-browser firefox.desktop
+target_user="${SUDO_USER:-${USER:-}}"
+
+add_user_to_group() {
+  local group="$1"
+  local user="$2"
+
+  if [[ -z "$user" ]]; then
+    printf 'Skipping group %s: could not determine target user\n' "$group" >&2
+    return 0
+  fi
+
+  if ! getent passwd "$user" >/dev/null 2>&1; then
+    printf 'Skipping group %s: user %s does not exist\n' "$group" "$user" >&2
+    return 0
+  fi
+
+  if ! getent group "$group" >/dev/null 2>&1; then
+    printf 'Skipping group %s: group does not exist\n' "$group" >&2
+    return 0
+  fi
+
+  sudo usermod -aG "$group" "$user"
+}
+
+if command -v xdg-settings >/dev/null 2>&1; then
+  current_default_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
+  if [[ "$current_default_browser" != "firefox.desktop" ]]; then
+    xdg-settings set default-web-browser firefox.desktop || \
+      printf 'Warning: failed to set default browser with xdg-settings\n' >&2
+  fi
 fi
 
 # Ensure standard user directories exist (initialize once)
@@ -174,14 +201,19 @@ install -d -m 0755 "${HOME}/.local/share/windows-docker/windows"
 install -d -m 0755 "${HOME}/.local/share/windows-vm-shared"
 
 # Add user to groups
-sudo usermod -aG wireshark $USER
-sudo usermod -aG docker $USER
+add_user_to_group wireshark "$target_user"
+add_user_to_group docker "$target_user"
 
 # Switch login shell to zsh when available
-if command -v zsh >/dev/null 2>&1; then
+if command -v zsh >/dev/null 2>&1 && [[ -n "$target_user" ]]; then
   zsh_path="$(command -v zsh)"
-  if [[ "${SHELL:-}" != "$zsh_path" ]]; then
-    chsh -s "$zsh_path" "$USER"
+  current_shell="$(getent passwd "$target_user" | cut -d: -f7 || true)"
+  if [[ "$current_shell" != "$zsh_path" ]]; then
+    if [[ -t 0 && -t 1 ]]; then
+      chsh -s "$zsh_path" "$target_user"
+    else
+      printf 'Skipping shell change for %s: chsh needs an interactive terminal\n' "$target_user" >&2
+    fi
   fi
 fi
 

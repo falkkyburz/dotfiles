@@ -657,7 +657,7 @@ require("lazy").setup({
 								library = vim.tbl_extend("force", vim.api.nvim_get_runtime_file("", true), {
 									"${3rd}/luv/library",
 									"${3rd}/busted/library",
-									"/home/falk/Work/Hyprland/meta",
+									vim.fn.expand("~/Work/Hyprland/meta"),
 								}),
 							},
 						})

@@ -23,4 +23,4 @@ services:
       - 3389:3389/udp
     volumes:
       - ./windows:/storage
-      - /home/falk/.local/share/windows-vm-shared:/shared
+      - ${HOME}/.local/share/windows-vm-shared:/shared

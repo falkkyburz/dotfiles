@@ -9,7 +9,7 @@ PACMAN_PKGS=(
   git base-devel
 
   # core apps / tools
-  kitty bat btop zsh less jq github-cli chezmoi age man tree lynx
+  kitty bat btop zsh less jq github-cli chezmoi age man-db man-pages tree lynx sudo
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
   unzip tree-sitter-cli moreutils
 
@@ -45,8 +45,8 @@ PACMAN_PKGS=(
   alsa-utils pipewire wireplumber pipewire-alsa pipewire-pulse sof-firmware vlc vlc-plugins-all audacity playerctl wayvnc
 
   # extras
-  libreoffice octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
-  lolcat figlet duf dust ripgrep exiftool rsync bandwhich pkgstats sysstat
+  libreoffice-fresh octave inkscape gimp fastfetch obs-studio zathura zathura-pdf-poppler okular reflector freecad kicad
+  lolcat figlet duf dust ripgrep perl-image-exiftool rsync bandwhich pkgstats sysstat
   # GUI Tools
   gnome-clocks impression gnome-disk-utility systemdgenie gwenview kdenlive ark
 
@@ -55,7 +55,7 @@ PACMAN_PKGS=(
   qalculate-gtk libqalculate gnuplot cloc shellcheck
 
   # development zephyr
-  cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file gcc-multilib sdl2-compat
+  cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file sdl2-compat
 
   # NetworkManager with iwd wifi backend
   networkmanager network-manager-applet nm-connection-editor iwd impala

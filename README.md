@@ -2,7 +2,7 @@
 
 Personal Arch Linux workstation dotfiles managed with [chezmoi](https://www.chezmoi.io/).
 
-This is not a generic portable profile. Some managed files intentionally assume this user's paths and workstation layout, including `/home/falk` and `~/Work`.
+This is not a generic portable profile. Some managed files intentionally assume this user's workstation layout, including `~/Work`.
 
 ## Target System
 
@@ -30,6 +30,22 @@ chezmoi apply
 ```
 
 The run scripts assume an Arch system with `pacman` and bootstrap `yay` for AUR packages when needed.
+
+## Fresh Machine Checks
+
+Before applying on a new machine, these checks catch most rendering and script syntax issues without running the privileged setup scripts:
+
+```bash
+chezmoi doctor
+chezmoi apply --exclude=scripts --dry-run --verbose
+bash -n run_*.sh private_dot_local/bin/executable_*
+```
+
+If `shellcheck` is installed, also run:
+
+```bash
+shellcheck -S error run_*.sh private_dot_local/bin/executable_*
+```
 
 ## Boot And Kernel
 

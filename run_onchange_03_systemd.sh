@@ -74,6 +74,10 @@ user_unit_known() {
   systemctl --user list-unit-files "$1" --no-legend 2>/dev/null | grep -q .
 }
 
+user_systemd_available() {
+  systemctl --user show-environment >/dev/null 2>&1
+}
+
 unit_is_enabled_user() {
   systemctl --user is-enabled "$1" >/dev/null 2>&1
 }
@@ -149,8 +153,6 @@ EOF
     run_as_root systemctl daemon-reload
   fi
 
-  systemctl --user daemon-reload
-
   SYSTEM_UNITS=(
     nftables.service
     bluetooth.service
@@ -169,6 +171,13 @@ EOF
   for unit in "${SYSTEM_UNITS[@]}"; do
     enable_now_system "$unit"
   done
+
+  if ! user_systemd_available; then
+    printf 'Skipping user systemd units: no user systemd session is available\n'
+    return
+  fi
+
+  systemctl --user daemon-reload
 
   USER_UNITS=(
     pipewire.service

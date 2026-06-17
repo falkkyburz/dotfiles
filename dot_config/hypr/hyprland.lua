@@ -4,7 +4,7 @@ local util = require("hyprland-util")
 
 -- {{{ monitor
 
-local icc_fn = "/home/falk/.local/share/color/profile.icc"
+local icc_fn = (os.getenv("HOME") or ("/home/" .. (os.getenv("USER") or ""))) .. "/.local/share/color/profile.icc"
 if util.file_exists(icc_fn) then
   hl.monitor({ output = 'eDP-1', mode = 'preferred', position = 'auto', scale = '1', icc=icc_fn })
 else
