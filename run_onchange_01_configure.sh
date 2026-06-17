@@ -234,7 +234,7 @@ elif [[ ! -d "$dotfiles_utils_dir/.git" ]]; then
   exit 1
 fi
 
-cmake --preset release -S "$dotfiles_utils_dir"
+cmake -S "$dotfiles_utils_dir" -B "$dotfiles_utils_dir/build/release" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
 cmake --build "$dotfiles_utils_dir/build/release" --parallel
 cmake --install "$dotfiles_utils_dir/build/release"
 
