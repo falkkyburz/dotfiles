@@ -28,8 +28,8 @@ add_user_to_group() {
 
 if command -v xdg-settings >/dev/null 2>&1; then
   current_default_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
-  if [[ "$current_default_browser" != "firefox.desktop" ]]; then
-    xdg-settings set default-web-browser firefox.desktop || \
+  if [[ "$current_default_browser" != "helium.desktop" ]]; then
+    xdg-settings set default-web-browser helium.desktop || \
       printf 'Warning: failed to set default browser with xdg-settings\n' >&2
   fi
 fi
