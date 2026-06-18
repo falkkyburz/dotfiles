@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run() {
+  printf '+'
+  printf ' %q' "$@"
+  printf '\n'
+  "$@"
+}
+
+if ! command -v nordvpn >/dev/null 2>&1; then
+  printf 'vpnoff: nordvpn command not found\n' >&2
+  exit 127
+fi
+
+if ! run nordvpn disconnect; then
+  printf 'vpnoff: continuing; NordVPN may already be disconnected\n' >&2
+fi
+
+run nordvpn set obfuscate off
+run nordvpn set technology nordlynx
