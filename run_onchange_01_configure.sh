@@ -201,6 +201,11 @@ install -d -m 0755 "${HOME}/.local/share/windows-docker/windows"
 install -d -m 0755 "${HOME}/.local/share/windows-vm-shared"
 
 # Add user to groups
+if ! getent group nordvpn >/dev/null 2>&1; then
+  sudo groupadd nordvpn
+fi
+
+add_user_to_group nordvpn "$target_user"
 add_user_to_group wireshark "$target_user"
 add_user_to_group docker "$target_user"
 
