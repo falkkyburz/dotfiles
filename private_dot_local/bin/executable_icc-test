@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    printf 'Usage: %s PROFILE.icc\n' "${0##*/}" >&2
+}
+
+reload_hyprland() {
+    if [[ "${reloaded:-0}" == 0 ]]; then
+        reloaded=1
+        hyprctl reload >/dev/null
+    fi
+}
+
+if [[ $# -ne 1 ]]; then
+    usage
+    exit 2
+fi
+
+profile="$1"
+
+if [[ ! -f "$profile" ]]; then
+    printf 'ICC profile not found: %s\n' "$profile" >&2
+    exit 1
+fi
+
+if ! command -v hyprctl >/dev/null 2>&1; then
+    printf 'hyprctl is required but not installed\n' >&2
+    exit 1
+fi
+
+profile_path="$(realpath "$profile")"
+
+if [[ "$profile_path" == *"]]"* ]]; then
+    printf 'ICC profile path cannot contain ]] for Lua long-string quoting: %s\n' "$profile_path" >&2
+    exit 1
+fi
+
+trap reload_hyprland INT TERM
+
+hyprctl dispatch "hl.config({ render = { cm_enabled = true } }); hl.monitor({ output = 'eDP-1', icc = [[$profile_path]] })" >/dev/null
+
+printf 'Applied ICC profile: %s\n' "$profile_path"
+printf 'Press q to reload Hyprland config and revert.\n'
+
+while IFS= read -rsn1 key; do
+    if [[ "$key" == q ]]; then
+        reload_hyprland
+        printf 'Reverted by reloading Hyprland config.\n'
+        exit 0
+    fi
+done

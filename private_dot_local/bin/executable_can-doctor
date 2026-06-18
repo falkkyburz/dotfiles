@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+interfaces=(vcan0 vcan1)
+
+require_root() {
+  if [[ ${EUID} -ne 0 ]]; then
+    printf 'can-doctor must run as root. Try: sudo %s\n' "$0" >&2
+    exit 1
+  fi
+}
+
+ensure_vcan_module() {
+  modprobe vcan
+}
+
+ensure_interface_up() {
+  local iface=$1
+
+  if ! ip link show dev "$iface" >/dev/null 2>&1; then
+    printf '%s missing; creating it\n' "$iface"
+    ip link add dev "$iface" type vcan
+  fi
+
+  if ip link show dev "$iface" | grep -q '<[^>]*UP'; then
+    printf '%s already UP\n' "$iface"
+  else
+    printf '%s down; bringing it UP\n' "$iface"
+    ip link set dev "$iface" up
+  fi
+}
+
+require_root
+ensure_vcan_module
+
+for iface in "${interfaces[@]}"; do
+  ensure_interface_up "$iface"
+done
+
+for iface in "${interfaces[@]}"; do
+  ip -details link show dev "$iface"
+done
