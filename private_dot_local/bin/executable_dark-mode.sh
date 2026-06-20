@@ -11,10 +11,8 @@ fi
 case "$mode" in
   prefer-dark)
     gsettings set org.gnome.desktop.interface color-scheme prefer-light
-    notify-send "Light Mode"
     ;;
   prefer-light|default)
     gsettings set org.gnome.desktop.interface color-scheme prefer-dark
-    notify-send "Dark Mode"
     ;;
 esac
