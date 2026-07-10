@@ -43,6 +43,7 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('wl-paste --type image --watch cliphist store')
     hl.exec_cmd('udiskie')
     hl.exec_cmd('~/.local/bin/battery-daemon')
+    hl.exec_cmd('~/.local/bin/portal-daemon')
     hl.exec_cmd('~/.local/bin/run-minibar.sh')
     hl.exec_cmd('wvkbd-deskintl --hidden')
     hl.config({misc = {initial_workspace_tracking = 1}})
@@ -222,6 +223,7 @@ hl.device({
 -- {{{ binds
 
 hl.bind(mainMod .. ' + Return',    hl.dsp.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"'), { description = 'Open terminal' })
+hl.bind(mainMod .. ' + SHIFT + Return', hl.dsp.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"', { float = true, center = true, size = {"(monitor_w*0.75)", "(monitor_h*0.75)"}, stay_focused = true }), { description = 'Open terminal' })
 hl.bind(mainMod .. ' + X',         hl.dsp.window.close(),                                                  { description = 'Close active window' })
 hl.bind(
     mainMod .. ' + M',
@@ -229,6 +231,7 @@ hl.bind(
     { description = 'Close hyprland' }
 )
 hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('thunar'),                                           { description = 'Open file explorer' })
+hl.bind(mainMod .. ' + SHIFT + E', hl.dsp.exec_cmd('thunar',                                            { float = true, center = true, size = {"(monitor_w*0.75)", "(monitor_h*0.75)"}, stay_focused = true }), { description = 'Open file explorer' })
 hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),                        { description = 'Toggle dark/light mode' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                             { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),         { description = 'Open Impala wifi TUI' })
@@ -288,6 +291,8 @@ hl.bind(mainMod .. ' + SHIFT + S', hl.dsp.window.move({ workspace = 'special:mag
 
 hl.bind(mainMod .. ' + mouse_down',hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
 hl.bind(mainMod .. ' + mouse_up',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
+hl.bind('mouse_right', hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
+hl.bind('mouse_left',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
 
 hl.bind(mainMod .. ' + mouse:272', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
 hl.bind(mainMod .. ' + CONTROL_L', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
@@ -405,6 +410,15 @@ hl.window_rule({
     float = true,
     center = true,
     size = 'monitor_w*0.5 monitor_h*0.5',
+})
+
+hl.window_rule({
+  match = {
+    class = "^(chromium|google-chrome|brave-browser|helium)$",
+  },
+
+  scroll_touchpad = 0.35,
+  scroll_mouse = 0.60,
 })
 
 -- }}}

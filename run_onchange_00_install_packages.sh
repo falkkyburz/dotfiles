@@ -52,7 +52,7 @@ PACMAN_PKGS=(
 
   # development
   gdb code stlink pulseview libsigrok sigrok-firmware-fx2lafw sigrok-cli wireshark-qt hugo sqlite postgresql
-  qalculate-gtk libqalculate gnuplot cloc shellcheck ripgrep
+  qalculate-gtk libqalculate gnuplot cloc shellcheck ripgrep socat
 
   # development zephyr
   cmake ninja gperf ccache dfu-util dtc python-virtualenv tk xz file sdl2-compat

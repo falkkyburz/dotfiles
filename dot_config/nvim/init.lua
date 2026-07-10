@@ -92,7 +92,14 @@ vim.o.scrolloff = 10
 vim.o.confirm = true
 
 -- Tab key behavior
+-- `tabstop` controls the visual width of a real tab character.
+-- `shiftwidth` controls how many columns are used for auto-indentation and `>>`/`<<`.
+-- `softtabstop` controls how many columns are inserted when pressing <Tab> in insert mode.
+-- Without setting `shiftwidth`, Neovim uses its default of 8, so indentation
+-- commands like `>>` or automatic indentation could use 8 spaces.
 vim.o.tabstop = 2
+vim.o.shiftwidth = 2
+vim.o.softtabstop = 2
 vim.o.expandtab = true
 vim.o.smarttab = true
 
@@ -188,6 +195,9 @@ vim.keymap.set("n", "<leader>td", function()
 	vim.cmd.colorscheme("tokyonight")
 end, { desc = "TokyoNight day" })
 
+vim.keymap.set("n", "<leader>bq", "<cmd>bp | bd #<CR>", {
+  desc = "Delete buffer, keep split",
+})
 -- }}}
 
 -- {{{ Autocommands
@@ -243,7 +253,8 @@ rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
 	-- NOTE: Plugins can be added via a link or github org/name. To run setup automatically, use `opts = {}`
-	-- { "NMAC427/guess-indent.nvim", opts = {} },
+	-- Detect the indentation style of existing files and match it (e.g. 2 or 4 spaces).
+	{ "NMAC427/guess-indent.nvim", opts = {} },
 
 	-- Alternatively, use `config = function() ... end` for full control over the configuration.
 	-- If you prefer to call `setup` explicitly, use:
