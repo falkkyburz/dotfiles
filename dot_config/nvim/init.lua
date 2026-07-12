@@ -196,7 +196,7 @@ vim.keymap.set("n", "<leader>td", function()
 end, { desc = "TokyoNight day" })
 
 vim.keymap.set("n", "<leader>bq", "<cmd>bp | bd #<CR>", {
-  desc = "Delete buffer, keep split",
+	desc = "Delete buffer, keep split",
 })
 -- }}}
 
@@ -870,7 +870,14 @@ require("lazy").setup({
 			vim.cmd.colorscheme("tokyonight-night")
 		end,
 	},
-
+	{
+		"ellisonleao/gruvbox.nvim",
+		priority = 1000,
+		lazy = false,
+		opts = {
+			transparent_mode = false,
+		},
+	},
 	-- Highlight todo, notes, etc in comments
 	{
 		"folke/todo-comments.nvim",

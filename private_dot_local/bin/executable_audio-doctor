@@ -65,6 +65,64 @@ print_configured_defaults() {
   grep '^default\.configured\.' "$STATE_FILE" || true
 }
 
+repair_card_profiles() {
+  local report
+
+  if ! have pactl; then
+    warn 'cannot inspect audio card profiles without pactl'
+    return
+  fi
+
+  report="$(pactl list cards 2>/dev/null | awk '
+    /^Card #[0-9]+/ {
+      card_id = $2
+      sub(/^#/, "", card_id)
+      card_name = ""
+      active = ""
+      speaker_mic_profile = ""
+      next
+    }
+    /^\tName: / {
+      card_name = $0
+      sub(/^\tName: /, "", card_name)
+      next
+    }
+    /^\t\t.*Speaker.*Mic.*available: yes/ {
+      profile = $0
+      sub(/^\t\t/, "", profile)
+      sub(/: .*/, "", profile)
+      speaker_mic_profile = profile
+      next
+    }
+    /^\tActive Profile: / {
+      active = $0
+      sub(/^\tActive Profile: /, "", active)
+      if (active == "off" && card_name ~ /^alsa_card\./)
+        print card_id "\t" card_name "\t" speaker_mic_profile
+    }
+  ')"
+
+  if [[ -z "$report" ]]; then
+    ok 'no audio cards have their active profile set to off'
+    return
+  fi
+
+  while IFS=$'\t' read -r card_id card_name profile; do
+    warn "audio card $card_id ($card_name) has its active profile set to off"
+
+    if [[ -z "$profile" ]]; then
+      fail "no available speaker-and-microphone profile found for audio card $card_id"
+      continue
+    fi
+
+    if pactl set-card-profile "$card_name" "$profile"; then
+      ok "activated internal speakers and microphone using profile: $profile"
+    else
+      fail "could not activate profile $profile on audio card $card_id"
+    fi
+  done <<< "$report"
+}
+
 clear_configured_defaults() {
   if [[ ! -f "$STATE_FILE" || ! -s "$STATE_FILE" ]] || ! grep -q '^default\.configured\.' "$STATE_FILE"; then
     return
@@ -119,6 +177,10 @@ printf 'Defaults\n'
 print_default_sink
 print_configured_defaults
 clear_configured_defaults
+printf '\n'
+
+printf 'Card profiles\n'
+repair_card_profiles
 printf '\n'
 
 print_sinks
