@@ -128,10 +128,9 @@ vim.diagnostic.config({
 	virtual_lines = false, -- Text shows up underneath the line, with virtual lines
 
 	-- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
-	jump = { float = true },
 })
 
-vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
+vim.keymap.set("n", "<leader>dq", vim.diagnostic.setloclist, { desc = "Open diagnostic location list" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -185,19 +184,37 @@ vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrea
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<cr>", { desc = "Make file executable" })
 
-vim.keymap.set("n", "<leader>tn", function()
-	vim.o.background = "dark"
-	vim.cmd.colorscheme("tokyonight")
-end, { desc = "TokyoNight night" })
+vim.g.gruvbox_contrast_dark = "hard"
+vim.g.gruvbox_contrast_light = "hard"
 
-vim.keymap.set("n", "<leader>td", function()
-	vim.o.background = "light"
-	vim.cmd.colorscheme("tokyonight")
-end, { desc = "TokyoNight day" })
+local function set_gruvbox(background)
+	local contrast = vim.g["gruvbox_contrast_" .. background]
+	-- gruvbox.nvim represents medium contrast with an empty string.
+	contrast = contrast == "medium" and "" or contrast
+	require("gruvbox").setup({
+		contrast = contrast,
+		transparent_mode = false,
+	})
+	vim.o.background = background
+	vim.cmd.colorscheme("gruvbox")
+end
+
+vim.keymap.set("n", "<leader>tn", function()
+	set_gruvbox("dark")
+end, { desc = "Gruvbox dark" })
+
+vim.keymap.set("n", "<leader>tl", function()
+	set_gruvbox("light")
+end, { desc = "Gruvbox light" })
 
 vim.keymap.set("n", "<leader>bq", "<cmd>bp | bd #<CR>", {
 	desc = "Delete buffer, keep split",
 })
+
+vim.keymap.set("n", "<leader>td", function()
+	vim.diagnostic.enable(not vim.diagnostic.is_enabled())
+end, { desc = "[T]oggle [D]iagnostics" })
+
 -- }}}
 
 -- {{{ Autocommands
@@ -314,6 +331,8 @@ require("lazy").setup({
 
 			-- Document existing key chains
 			spec = {
+				{ "<leader>c", group = "[C]/C++", mode = { "n", "v" } },
+				{ "<leader>d", group = "[D]ebug/diagnostics", mode = { "n", "v" } },
 				{ "<leader>s", group = "[S]earch", mode = { "n", "v" } },
 				{ "<leader>t", group = "[T]oggle" },
 				{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
@@ -628,6 +647,10 @@ require("lazy").setup({
 				clangd = {
 					cmd = {
 						"clangd",
+						"--background-index",
+						"--clang-tidy",
+						"--completion-style=detailed",
+						"--header-insertion=iwyu",
 						"--query-driver=/usr/bin/g++,/usr/bin/gcc,/usr/bin/clang++,/usr/bin/clang",
 					},
 				},
@@ -736,17 +759,14 @@ require("lazy").setup({
 					return nil
 				end
 
-				local disable_filetypes = { c = true, cpp = true }
-				if disable_filetypes[vim.bo[bufnr].filetype] then
-					return nil
-				end
-
 				return {
 					timeout_ms = 500,
 					lsp_format = "fallback",
 				}
 			end,
 			formatters_by_ft = {
+				c = { "clang-format" },
+				cpp = { "clang-format" },
 				lua = { "stylua" },
 				-- python = { "isort", "black" },
 				-- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -849,34 +869,13 @@ require("lazy").setup({
 		},
 	},
 
-	{ -- You can easily change to a different colorscheme.
-		-- Change the name of the colorscheme plugin below, and then
-		-- change the command in the config to whatever the name of that colorscheme is.
-		--
-		-- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-		"folke/tokyonight.nvim",
-		priority = 1000, -- Make sure to load this before all the other start plugins.
-		config = function()
-			---@diagnostic disable-next-line: missing-fields
-			require("tokyonight").setup({
-				styles = {
-					comments = { italic = false }, -- Disable italics in comments
-				},
-			})
-
-			-- Load the colorscheme here.
-			-- Like many other themes, this one has different styles, and you could load
-			-- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-			vim.cmd.colorscheme("tokyonight-night")
-		end,
-	},
 	{
 		"ellisonleao/gruvbox.nvim",
 		priority = 1000,
 		lazy = false,
-		opts = {
-			transparent_mode = false,
-		},
+		config = function()
+			set_gruvbox("dark")
+		end,
 	},
 	-- Highlight todo, notes, etc in comments
 	{
@@ -937,6 +936,8 @@ require("lazy").setup({
 			local parsers = {
 				"bash",
 				"c",
+				"cmake",
+				"cpp",
 				"diff",
 				"html",
 				"lua",
@@ -1003,7 +1004,7 @@ require("lazy").setup({
 	--    This is the easiest way to modularize your config.
 	--
 	--  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-	-- { import = 'custom.plugins' },
+	{ import = "custom.plugins" },
 	--
 	-- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
 	-- Or use telescope!
@@ -1030,6 +1031,8 @@ require("lazy").setup({
 		},
 	},
 })
+
+require("custom.cpp").setup()
 
 -- }}}
 

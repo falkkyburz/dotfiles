@@ -193,7 +193,7 @@ hl.config({
         kb_rules = '',
         repeat_rate = 35,
         repeat_delay = 300,
-        follow_mouse = 2,
+        follow_mouse = 1,
         sensitivity = 0,
 
         touchpad = {
@@ -230,8 +230,8 @@ hl.bind(
     hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"),
     { description = 'Close hyprland' }
 )
-hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('thunar'),                                           { description = 'Open file explorer' })
-hl.bind(mainMod .. ' + SHIFT + E', hl.dsp.exec_cmd('thunar',                                            { float = true, center = true, size = {"(monitor_w*0.75)", "(monitor_h*0.75)"}, stay_focused = true }), { description = 'Open file explorer' })
+hl.bind(mainMod .. ' + SHIFT + E', hl.dsp.exec_cmd('thunar'),                                           { description = 'Open file explorer' })
+hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('kitty --class kitty_ranger ranger', {float = true, center = true, size = { "(monitor_w*0.75)", "(monitor_h*0.75)" }, stay_focused = true}), { description = 'Open Ranger file manager' })
 hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),                        { description = 'Toggle dark/light mode' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                             { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),         { description = 'Open Impala wifi TUI' })

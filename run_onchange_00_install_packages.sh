@@ -11,7 +11,7 @@ PACMAN_PKGS=(
   # core apps / tools
   kitty bat btop zsh less jq github-cli chezmoi age man-db man-pages tree lynx sudo
   nnn nodejs npm fd lazygit fzf wget uv cpio usbutils zsh-autosuggestions
-  unzip tree-sitter-cli moreutils
+  unzip tree-sitter-cli moreutils ranger
 
   # keyring
   kwallet kwallet-pam kwalletmanager
