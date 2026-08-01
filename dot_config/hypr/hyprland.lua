@@ -231,7 +231,7 @@ hl.bind(
     { description = 'Close hyprland' }
 )
 hl.bind(mainMod .. ' + SHIFT + E', hl.dsp.exec_cmd('thunar'),                                           { description = 'Open file explorer' })
-hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('kitty --class kitty_ranger ranger', {float = true, center = true, size = { "(monitor_w*0.75)", "(monitor_h*0.75)" }, stay_focused = true}), { description = 'Open Ranger file manager' })
+hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('kitty --class kitty_ranger --directory "$(~/.local/bin/terminal-cwd.sh)" ranger', {float = true, center = true, size = { "(monitor_w*0.75)", "(monitor_h*0.75)" }, stay_focused = true}), { description = 'Open Ranger file manager' })
 hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),                        { description = 'Toggle dark/light mode' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                             { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),         { description = 'Open Impala wifi TUI' })
@@ -313,6 +313,9 @@ hl.bind('XF86AudioPrev',  hl.dsp.exec_cmd('playerctl previous'),   { locked = tr
 
 hl.bind('SUPER + Equal', hl.dsp.window.resize({ x = 40, y = 40, relative = true }),   { description = 'Stretch active window' })
 hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = true }), { description = 'Contract active window' })
+
+hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record start'), { description = 'Start voxtype'})
+hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record stop'), { release = true, description = 'Start voxtype'})
 
 -- }}}
 

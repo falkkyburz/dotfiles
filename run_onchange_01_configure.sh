@@ -45,6 +45,11 @@ fi
 # Make Work directory
 install -d -m 0755 "${HOME}/Work"
 
+# Configure Voxtype and download the configured model if it is missing
+if command -v voxtype >/dev/null 2>&1; then
+  voxtype setup --download
+fi
+
 # Fix fonts for XWayland
 sudo install -d /etc/fonts/conf.d
 

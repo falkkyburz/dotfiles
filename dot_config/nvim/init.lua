@@ -235,6 +235,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
 	callback = function()
 		vim.opt_local.modified = false
 		vim.opt_local.bufhidden = "delete"
+		vim.keymap.set("n", "<leader>q", "<cmd>quit!<cr>", { buffer = true, desc = "Close terminal" })
 	end,
 })
 

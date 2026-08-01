@@ -83,6 +83,7 @@ AUR_PKGS=(
   ttf-noto-emoji-monochrome
   wvkbd-git
   obs-wayland-hotkeys-git
+  voxtype-bin
 )
 
 install_pacman() {

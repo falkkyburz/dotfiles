@@ -183,6 +183,7 @@ EOF
     pipewire.service
     pipewire-pulse.service
     wireplumber.service
+    voxtype.service
   )
 
   for unit in "${USER_UNITS[@]}"; do
