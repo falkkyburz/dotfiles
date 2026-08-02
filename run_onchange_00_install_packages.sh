@@ -75,8 +75,6 @@ AUR_PKGS=(
   satty
   can-utils-git
   xdg-terminal-exec
-  opencode-bin
-  opencode-desktop-bin
   unixcw
   neovim-git
   nordvpn-bin
