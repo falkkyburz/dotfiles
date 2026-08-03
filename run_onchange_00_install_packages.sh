@@ -80,7 +80,6 @@ AUR_PKGS=(
   nordvpn-bin
   ttf-noto-emoji-monochrome
   wvkbd-git
-  obs-wayland-hotkeys-git
   voxtype-bin
 )
 

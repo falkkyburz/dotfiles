@@ -250,7 +250,6 @@ hl.bind(mainMod .. ' + J',         hl.dsp.layout('togglesplit'),                
 hl.bind(mainMod .. ' + H',         hl.dsp.exec_cmd('kitty --class kitty_btop --hold btop'),             { description = 'Open btop' })
 hl.bind(mainMod .. ' + L',         hl.dsp.exec_cmd('~/.local/bin/lock-session.sh'),                     { description = 'Lock session' })
 hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot-menu -r -c'),               { description = 'Take screenshot' })
-hl.bind(mainMod .. ' + Page_Up',   hl.dsp.global(':_toggle_recording'),                                 { description = 'Toggle OBS recording' })
 hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),                    { description = 'Open clipboard history' })
 hl.bind(mainMod .. ' + K',         hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
 hl.bind(mainMod .. ' + SHIFT + K', hl.dsp.exec_cmd('pkill -RTMIN -x wvkbd-deskintl'),                   { description = 'Toggle screen keyboard' })
@@ -317,7 +316,7 @@ hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = tru
 hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record start'), { description = 'Start voxtype'})
 hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record stop'), { release = true, description = 'Start voxtype'})
 
-hl.bind(mainMod .. ' + Period', hl.dsp.exec_cmd('nvim'),                              { description = 'Open file Neovim' })
+hl.bind(mainMod .. ' + Period', hl.dsp.exec_cmd('kitty --class kitty_nvim --hold nvim'), { description = 'Open file Neovim' })
 -- }}}
 
 -- {{{ windowrules
