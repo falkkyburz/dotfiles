@@ -317,6 +317,7 @@ hl.bind('SUPER + Minus', hl.dsp.window.resize({ x = -40, y = -40, relative = tru
 hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record start'), { description = 'Start voxtype'})
 hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record stop'), { release = true, description = 'Start voxtype'})
 
+hl.bind(mainMod .. ' + Period', hl.dsp.exec_cmd('nvim'),                              { description = 'Open file Neovim' })
 -- }}}
 
 -- {{{ windowrules
