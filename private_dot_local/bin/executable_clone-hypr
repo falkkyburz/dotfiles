@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-workdir="$HOME/Work"
+workdir="$HOME/dev"
 
 repos=(
   "Hyprland https://github.com/hyprwm/Hyprland.git"

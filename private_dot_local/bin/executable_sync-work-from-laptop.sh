@@ -6,13 +6,13 @@ usage() {
   cat <<'EOF'
 Usage: sync-work-from-laptop.sh [--delete] [host] [user] [remote-dir] [local-dir]
 
-Copy a Work directory from another laptop to this computer.
+Copy a dev directory from another laptop to this computer.
 
 Defaults:
   host        192.168.1.119
   user        current local user
-  remote-dir  /home/<user>/Work
-  local-dir   $HOME/Work
+  remote-dir  /home/<user>/dev
+  local-dir   $HOME/dev
 
 Local-only files are preserved unless --delete is explicitly supplied.
 
@@ -38,8 +38,8 @@ esac
 
 host="${1:-192.168.1.119}"
 remote_user="${2:-$(id -un)}"
-remote_dir="${3:-/home/${remote_user}/Work}"
-local_dir="${4:-${HOME}/Work}"
+remote_dir="${3:-/home/${remote_user}/dev}"
+local_dir="${4:-${HOME}/dev}"
 
 for command_name in rsync ssh; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
@@ -67,4 +67,4 @@ rsync "${rsync_options[@]}" \
   "${remote_user}@${host}:${remote_dir%/}/" \
   "${local_dir%/}/"
 
-printf '\nWork directory sync completed.\n'
+printf '\ndev directory sync completed.\n'

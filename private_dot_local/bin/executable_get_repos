@@ -1,7 +1,7 @@
 #! /usr/bin/bash
 
 repos=(amateurfunk minirack start qmk_firmware cantp falkkyburz.github.io)
-local=~/Work 
+local=~/dev
 
 for repo in "${repos[@]}"; do
 if [[ ! -d ${local}/${repo} ]]; then

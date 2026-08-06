@@ -42,8 +42,8 @@ if command -v xdg-user-dirs-update >/dev/null 2>&1; then
   fi
 fi
 
-# Make Work directory
-install -d -m 0755 "${HOME}/Work"
+# Make development directory
+install -d -m 0755 "${HOME}/dev"
 
 # Configure Voxtype and download the configured model if it is missing
 if command -v voxtype >/dev/null 2>&1; then
@@ -235,7 +235,7 @@ if command -v zsh >/dev/null 2>&1; then
 fi
 
 # Build and install dotfiles utilities
-dotfiles_utils_dir="${HOME}/Work/dotfiles-utils"
+dotfiles_utils_dir="${HOME}/dev/dotfiles-utils"
 
 if [[ ! -d "$dotfiles_utils_dir" ]]; then
   git clone https://github.com/falkkyburz/dotfiles-utils.git "$dotfiles_utils_dir"
@@ -250,7 +250,7 @@ cmake --build "$dotfiles_utils_dir/build/release" --parallel
 cmake --install "$dotfiles_utils_dir/build/release"
 
 # Build and install Hyprland screen picker
-hyprscreenpicker_dir="${HOME}/Work/hyprscreenpicker"
+hyprscreenpicker_dir="${HOME}/dev/hyprscreenpicker"
 
 if [[ ! -d "$hyprscreenpicker_dir" ]]; then
   git clone https://github.com/falkkyburz/hyprscreenpicker.git "$hyprscreenpicker_dir"

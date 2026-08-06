@@ -37,7 +37,7 @@ fi
 
 echo
 echo "Building hyprscreenpicker..."
-hyprscreenpicker_dir="${HOME}/Work/hyprscreenpicker"
+hyprscreenpicker_dir="${HOME}/dev/hyprscreenpicker"
 
 if [[ ! -e "$hyprscreenpicker_dir" ]]; then
   git clone https://github.com/falkkyburz/hyprscreenpicker.git "$hyprscreenpicker_dir"

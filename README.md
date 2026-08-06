@@ -2,7 +2,7 @@
 
 Personal Arch Linux workstation dotfiles managed with [chezmoi](https://www.chezmoi.io/).
 
-This is not a generic portable profile. Some managed files intentionally assume this user's workstation layout, including `~/Work`.
+This is not a generic portable profile. Some managed files intentionally assume this user's workstation layout, including `~/dev`.
 
 ## Target System
 
@@ -47,6 +47,19 @@ If `shellcheck` is installed, also run:
 shellcheck -S error run_*.sh private_dot_local/bin/executable_*
 ```
 
+## Doctor Scripts
+
+The following diagnostic helpers are installed in `~/.local/bin`:
+
+- `audio-doctor` checks PipeWire and WirePlumber services, defaults, sinks, and card profiles.
+- `can-doctor` creates and verifies the `vcan0` and `vcan1` virtual CAN interfaces; run it with `sudo`.
+- `clangd-doctor [project-dir]` checks a C/C++ project's clangd and compilation database setup.
+- `dns-doctor [host]` inspects resolver, NetworkManager, VPN, encrypted DNS, and browser DoH state.
+- `keyring-doctor` checks KWallet binaries, PAM integration, processes, DBus services, and wallet files.
+- `network-doctor.sh [host]` checks devices, routes, DNS, connectivity, NetworkManager, and nftables.
+- `wifi-doctor [SSID]` diagnoses NetworkManager and iwd state and can interactively clear saved authentication data.
+- `xdg-doctor` checks the XDG desktop portal executables, processes, DBus names, and user services.
+
 ## Boot And Kernel
 
 The current setup provisions mkinitcpio UKI output paths for systemd-boot-style unified kernel images. It writes `/etc/mkinitcpio.d/linux.preset` with these targets:
@@ -61,5 +74,3 @@ Manual kernel artifact refresh:
 ```bash
 sudo mkinitcpio -P
 ```
-
-This repo no longer configures the old Limine staged-kernel workflow.
