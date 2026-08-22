@@ -117,6 +117,8 @@ table inet filter {
     iif lo accept comment "allow from loopback"
     meta l4proto { icmp, icmpv6 } accept comment "allow icmp"
     tcp dport ssh accept comment "allow sshd"
+    iifname { "wlan0", "enp0s31f6" } ip saddr 192.168.1.0/24 tcp dport { 47984, 47989, 48010 } accept comment "allow Sunshine from LAN"
+    iifname { "wlan0", "enp0s31f6" } ip saddr 192.168.1.0/24 udp dport { 47998, 47999, 48000, 48002, 48010 } accept comment "allow Sunshine from LAN"
     pkttype host limit rate 5/second counter reject with icmpx type admin-prohibited
     counter
   }

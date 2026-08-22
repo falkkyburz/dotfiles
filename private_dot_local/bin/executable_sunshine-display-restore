@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+virtual_output="SUNSHINE"
+
+monitor_exists() {
+  hyprctl monitors all -j | jq -e --arg output "$1" '.[] | select(.name == $output)' >/dev/null
+}
+
+hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '0x0', scale = '1', disabled = false })" >/dev/null
+
+if monitor_exists "$virtual_output"; then
+  hyprctl eval "hl.dsp.workspace.move({ monitor = 'eDP-1' })" >/dev/null
+  hyprctl output remove "$virtual_output" >/dev/null
+fi
+
+hyprctl reload >/dev/null

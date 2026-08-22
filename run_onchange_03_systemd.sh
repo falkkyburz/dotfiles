@@ -139,6 +139,20 @@ After=graphical-session-pre.target
 Before=graphical-session.target
 EOF
 
+  write_user_file "$user_systemd_dir/app-dev.lizardbyte.app.Sunshine.service.d/hyprland-session.conf" 0644 <<'EOF'
+[Unit]
+After=hyprland-session.target
+PartOf=hyprland-session.target
+
+[Service]
+ExecStartPre=-%h/.local/bin/sunshine-display-restore
+ExecStopPost=-%h/.local/bin/sunshine-display-restore
+
+[Install]
+WantedBy=
+WantedBy=hyprland-session.target
+EOF
+
   write_root_file /etc/NetworkManager/conf.d/wifi_backend.conf 0644 root root <<'EOF'
 [device]
 wifi.backend=iwd
@@ -184,6 +198,7 @@ EOF
     pipewire-pulse.service
     wireplumber.service
     voxtype.service
+    app-dev.lizardbyte.app.Sunshine.service
   )
 
   for unit in "${USER_UNITS[@]}"; do

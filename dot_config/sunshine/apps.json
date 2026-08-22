@@ -1,0 +1,30 @@
+{
+  "env": {
+    "PATH": "$(PATH):$(HOME)/.local/bin"
+  },
+  "apps": [
+    {
+      "name": "Desktop",
+      "image-path": "desktop.png",
+      "prep-cmd": [
+        {
+          "do": "$(HOME)/.local/bin/sunshine-display-setup",
+          "undo": "$(HOME)/.local/bin/sunshine-display-restore"
+        }
+      ]
+    },
+    {
+      "name": "Steam Big Picture",
+      "detached": [
+        "setsid steam steam://open/bigpicture"
+      ],
+      "prep-cmd": [
+        {
+          "do": "",
+          "undo": "setsid steam steam://close/bigpicture"
+        }
+      ],
+      "image-path": "steam.png"
+    }
+  ]
+}

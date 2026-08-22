@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+virtual_output="SUNSHINE"
+
+monitor_exists() {
+  hyprctl monitors all -j | jq -e --arg output "$1" '.[] | select(.name == $output)' >/dev/null
+}
+
+monitor_ready() {
+  hyprctl monitors -j | jq -e --arg output "$virtual_output" \
+    '.[] | select(.name == $output and .width == 2560 and .height == 1440 and .refreshRate >= 59)' >/dev/null
+}
+
+if ! monitor_exists "$virtual_output"; then
+  hyprctl output create headless "$virtual_output" >/dev/null
+fi
+
+hyprctl eval "hl.monitor({ output = '$virtual_output', mode = '2560x1440@60', position = '0x0', scale = '1' })" >/dev/null
+
+for _ in {1..20}; do
+  monitor_ready && break
+  sleep 0.1
+done
+
+if ! monitor_ready; then
+  printf 'Sunshine virtual output did not reach 2560x1440@60\n' >&2
+  exit 1
+fi
+
+hyprctl eval "hl.dsp.workspace.move({ monitor = '$virtual_output' })" >/dev/null
+hyprctl eval "hl.monitor({ output = 'eDP-1', disabled = true })" >/dev/null
