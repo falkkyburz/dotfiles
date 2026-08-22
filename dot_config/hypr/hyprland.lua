@@ -256,7 +256,9 @@ hl.bind(mainMod .. ' + SHIFT + S', hl.dsp.layout('togglesplit'),                
 hl.bind(mainMod .. ' + SHIFT + H', hl.dsp.exec_cmd('kitty --class kitty_btop --hold btop'),             { description = 'Open btop' })
 hl.bind(mainMod .. ' + Escape',    hl.dsp.exec_cmd('~/.local/bin/lock-session.sh'),                     { description = 'Lock session' })
 hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot-menu -r -c'),               { description = 'Take screenshot' })
-hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),                    { description = 'Open clipboard history' })
+hl.bind(mainMod .. ' + SHIFT + V', hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),                    { description = 'Open clipboard history' })
+hl.bind(mainMod .. ' + V',         hl.dsp.send_shortcut({ mods = 'CTRL SHIFT', key = 'V' }),            { description = 'Paste' })
+hl.bind(mainMod .. ' + C',         hl.dsp.send_shortcut({ mods = 'CTRL SHIFT', key = 'C' }),            { description = 'Copy' })
 hl.bind(mainMod .. ' + Slash',     hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
 hl.bind(mainMod .. ' + SHIFT + K', hl.dsp.exec_cmd('pkill -RTMIN -x wvkbd-deskintl'),                   { description = 'Toggle screen keyboard' })
 
