@@ -8,6 +8,12 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+-- This config does not use remote plugins from these language ecosystems.
+vim.g.loaded_node_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+
 -- }}}
 
 -- {{{ Font
@@ -182,7 +188,24 @@ vim.keymap.set("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
 vim.keymap.set("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" })
 vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrease width" })
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
-vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<cr>", { desc = "Make file executable" })
+vim.keymap.set("n", "<leader>x", function()
+	local file = vim.api.nvim_buf_get_name(0)
+	if file == "" then
+		vim.notify("Buffer has no file", vim.log.levels.WARN)
+		return
+	end
+
+	vim.system({ "chmod", "+x", file }, { text = true }, function(result)
+		vim.schedule(function()
+			if result.code == 0 then
+				vim.notify("Made executable: " .. vim.fn.fnamemodify(file, ":~:."))
+			else
+				local message = vim.trim(result.stderr or "")
+				vim.notify(message ~= "" and message or "chmod failed", vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end, { desc = "Make file executable" })
 
 vim.g.gruvbox_contrast_dark = "hard"
 vim.g.gruvbox_contrast_light = "hard"
@@ -241,6 +264,178 @@ vim.api.nvim_create_autocmd("TermOpen", {
 
 -- }}}
 
+-- {{{ C/C++ helpers
+
+local cpp = {}
+local cpp_root_markers = { "CMakePresets.json", "CMakeLists.txt", "compile_commands.json", "Makefile", ".git" }
+
+function cpp.root()
+	local start = vim.api.nvim_buf_get_name(0)
+	if start == "" then start = vim.uv.cwd() end
+	local stat = vim.uv.fs_stat(start)
+	if stat and stat.type == "file" then start = vim.fs.dirname(start) end
+	local found = vim.fs.find(cpp_root_markers, { upward = true, path = start })[1]
+	return found and vim.fs.dirname(found) or vim.uv.cwd()
+end
+
+local function cpp_build_dir()
+	return cpp.root() .. "/build"
+end
+
+local function cpp_project_has(name)
+	return vim.uv.fs_stat(cpp.root() .. "/" .. name) ~= nil
+end
+
+local cpp_errorformat = table.concat({
+	"%f:%l:%c: %trror: %m",
+	"%f:%l:%c: %tarning: %m",
+	"%f:%l:%c: %m",
+	"%f:%l: %trror: %m",
+	"%f:%l: %tarning: %m",
+	"%f:%l: %m",
+	"%-G%.%#",
+}, ",")
+
+local function cpp_run(name, cmd, opts)
+	opts = opts or {}
+	vim.notify(name .. " started", vim.log.levels.INFO)
+	vim.system(cmd, { cwd = opts.cwd or cpp.root(), text = true }, function(result)
+		vim.schedule(function()
+			local output = (result.stdout or "") .. (result.stderr or "")
+			vim.fn.setqflist({}, " ", {
+				title = name,
+				lines = vim.split(output, "\n", { trimempty = true }),
+				efm = opts.efm or cpp_errorformat,
+			})
+			if result.code == 0 then
+				vim.notify(name .. " succeeded", vim.log.levels.INFO)
+			else
+				vim.notify(name .. " failed (exit " .. result.code .. ")", vim.log.levels.ERROR)
+				vim.cmd.copen()
+			end
+		end)
+	end)
+end
+
+function cpp.configure()
+	if not cpp_project_has("CMakeLists.txt") then
+		vim.notify("No CMakeLists.txt found in project root", vim.log.levels.WARN)
+		return
+	end
+	cpp_run("CMake configure", {
+		"cmake",
+		"-S",
+		cpp.root(),
+		"-B",
+		cpp_build_dir(),
+		"-G",
+		"Ninja",
+		"-DCMAKE_BUILD_TYPE=Debug",
+		"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+	})
+end
+
+function cpp.build()
+	if cpp_project_has("CMakeLists.txt") then
+		cpp_run("CMake build", { "cmake", "--build", cpp_build_dir() })
+	elseif cpp_project_has("Makefile") then
+		cpp_run("Make build", { "make", "-j" .. tostring(vim.uv.available_parallelism()) })
+	else
+		vim.notify("No CMakeLists.txt or Makefile found", vim.log.levels.WARN)
+	end
+end
+
+function cpp.clean()
+	if cpp_project_has("CMakeLists.txt") then
+		cpp_run("CMake clean", { "cmake", "--build", cpp_build_dir(), "--target", "clean" })
+	elseif cpp_project_has("Makefile") then
+		cpp_run("Make clean", { "make", "clean" })
+	else
+		vim.notify("No CMakeLists.txt or Makefile found", vim.log.levels.WARN)
+	end
+end
+
+function cpp.test()
+	if cpp_project_has("CMakeLists.txt") then
+		cpp_run(
+			"CTest",
+			{ "ctest", "--test-dir", cpp_build_dir(), "--output-on-failure" },
+			{ efm = "%f:%l: %m,%-G%.%#" }
+		)
+	elseif cpp_project_has("Makefile") then
+		cpp_run("Make test", { "make", "test" })
+	else
+		vim.notify("No CMakeLists.txt or Makefile found", vim.log.levels.WARN)
+	end
+end
+
+function cpp.tidy()
+	local file = vim.api.nvim_buf_get_name(0)
+	if not vim.tbl_contains({ "c", "cpp" }, vim.bo.filetype) or file == "" then
+		vim.notify("Clang-tidy requires a C or C++ file", vim.log.levels.WARN)
+		return
+	end
+	cpp_run("Clang-tidy", { "clang-tidy", "-p", cpp_build_dir(), file })
+end
+
+local function cpp_executables()
+	local files = vim.fn.glob(cpp_build_dir() .. "/**/*", false, true)
+	return vim.tbl_filter(function(path)
+		return vim.fn.isdirectory(path) == 0
+			and vim.fn.executable(path) == 1
+			and not path:find("/CMakeFiles/")
+	end, files)
+end
+
+function cpp.debug_program()
+	local choices = cpp_executables()
+	local default = choices[1] or (cpp_build_dir() .. "/")
+	return vim.fn.input("Executable: ", default, "file")
+end
+
+local function cpp_switch_header()
+	if vim.fn.exists(":LspClangdSwitchSourceHeader") == 2 then
+		vim.cmd.LspClangdSwitchSourceHeader()
+	else
+		vim.notify("clangd is not attached", vim.log.levels.WARN)
+	end
+end
+
+function cpp.setup()
+	vim.api.nvim_create_user_command("CMakeConfigure", cpp.configure, {})
+	vim.api.nvim_create_user_command("CMakeBuild", cpp.build, {})
+	vim.api.nvim_create_user_command("CMakeClean", cpp.clean, {})
+	vim.api.nvim_create_user_command("CTest", cpp.test, {})
+	vim.api.nvim_create_user_command("ClangTidy", cpp.tidy, {})
+
+	vim.keymap.set("n", "<leader>cc", cpp.configure, { desc = "CMake configure" })
+	vim.keymap.set("n", "<leader>cb", cpp.build, { desc = "CMake build" })
+	vim.keymap.set("n", "<leader>cx", cpp.clean, { desc = "CMake clean" })
+	vim.keymap.set("n", "<leader>ct", cpp.test, { desc = "CTest" })
+	vim.keymap.set("n", "<leader>ca", cpp.tidy, { desc = "Clang-tidy current file" })
+	vim.keymap.set("n", "<leader>ch", cpp_switch_header, { desc = "C/C++ switch source/header" })
+
+	local warned = {}
+	vim.api.nvim_create_autocmd("LspAttach", {
+		group = vim.api.nvim_create_augroup("cpp-compilation-database", { clear = true }),
+		callback = function(args)
+			local client = vim.lsp.get_client_by_id(args.data.client_id)
+			if not client or client.name ~= "clangd" then return end
+			local root = client.root_dir or cpp.root()
+			local candidates = { root .. "/compile_commands.json", root .. "/build/compile_commands.json" }
+			if
+				not warned[root]
+				and not vim.iter(candidates):any(function(path) return vim.uv.fs_stat(path) ~= nil end)
+			then
+				warned[root] = true
+				vim.notify("clangd: no compile_commands.json found; run :CMakeConfigure", vim.log.levels.WARN)
+			end
+		end,
+	})
+end
+
+-- }}}
+
 -- {{{ Install `lazy.nvim` plugin manager
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -273,6 +468,7 @@ require("lazy").setup({
 	-- NOTE: Plugins can be added via a link or github org/name. To run setup automatically, use `opts = {}`
 	-- Detect the indentation style of existing files and match it (e.g. 2 or 4 spaces).
 	{ "NMAC427/guess-indent.nvim", opts = {} },
+	{ "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
 
 	-- Alternatively, use `config = function() ... end` for full control over the configuration.
 	-- If you prefer to call `setup` explicitly, use:
@@ -302,6 +498,24 @@ require("lazy").setup({
 				topdelete = { text = "‾" }, ---@diagnostic disable-line: missing-fields
 				changedelete = { text = "~" }, ---@diagnostic disable-line: missing-fields
 			},
+			on_attach = function(bufnr)
+				local gs = require("gitsigns")
+				local function map(mode, lhs, rhs, desc)
+					vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+				end
+				map("n", "]c", function()
+					if vim.wo.diff then vim.cmd.normal({ "]c", bang = true }) else gs.nav_hunk("next") end
+				end, "Next Git hunk")
+				map("n", "[c", function()
+					if vim.wo.diff then vim.cmd.normal({ "[c", bang = true }) else gs.nav_hunk("prev") end
+				end, "Previous Git hunk")
+				map({ "n", "v" }, "<leader>hs", gs.stage_hunk, "Git stage hunk")
+				map({ "n", "v" }, "<leader>hr", gs.reset_hunk, "Git reset hunk")
+				map("n", "<leader>hu", gs.undo_stage_hunk, "Git undo staged hunk")
+				map("n", "<leader>hp", gs.preview_hunk, "Git preview hunk")
+				map("n", "<leader>hb", gs.blame_line, "Git blame line")
+				map("n", "<leader>hd", gs.diffthis, "Git diff index")
+			end,
 		},
 	},
 
@@ -353,9 +567,8 @@ require("lazy").setup({
 		"nvim-telescope/telescope.nvim",
 		-- By default, Telescope is included and acts as your picker for everything.
 
-		-- If you would like to switch to a different picker (like snacks, or fzf-lua)
-		-- you can disable the Telescope plugin by setting enabled to false and enable
-		-- your replacement picker by requiring it explicitly (e.g. 'custom.plugins.snacks')
+		-- If you would like to switch to a different picker (like snacks, or fzf-lua),
+		-- disable Telescope and add your replacement's plugin spec here.
 
 		-- Note: If you customize your config for yourself,
 		-- it’s best to remove the Telescope plugin config entirely
@@ -806,6 +1019,12 @@ require("lazy").setup({
 				},
 				opts = {},
 			},
+			{
+				"rafamadriz/friendly-snippets",
+				config = function()
+					require("luasnip.loaders.from_vscode").lazy_load()
+				end,
+			},
 		},
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
@@ -868,6 +1087,58 @@ require("lazy").setup({
 			-- Shows a signature help window while you type arguments for a function
 			signature = { enabled = true },
 		},
+	},
+	{
+		"mfussenegger/nvim-dap",
+		dependencies = {
+			"rcarriga/nvim-dap-ui",
+			"nvim-neotest/nvim-nio",
+		},
+		keys = {
+			{ "<F5>", function() require("dap").continue() end, desc = "Debug: start/continue" },
+			{ "<F1>", function() require("dap").step_into() end, desc = "Debug: step into" },
+			{ "<F2>", function() require("dap").step_over() end, desc = "Debug: step over" },
+			{ "<F3>", function() require("dap").step_out() end, desc = "Debug: step out" },
+			{ "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "Debug breakpoint" },
+			{
+				"<leader>dB",
+				function() require("dap").set_breakpoint(vim.fn.input("Condition: ")) end,
+				desc = "Debug conditional breakpoint",
+			},
+			{ "<leader>du", function() require("dapui").toggle() end, desc = "Debug UI" },
+			{ "<leader>dr", function() require("dap").repl.open() end, desc = "Debug REPL" },
+			{ "<leader>dx", function() require("dap").terminate() end, desc = "Debug terminate" },
+		},
+		config = function()
+			local dap, dapui = require("dap"), require("dapui")
+			dap.adapters.gdb = {
+				type = "executable",
+				command = "gdb",
+				args = { "--quiet", "--interpreter=dap" },
+			}
+			dap.configurations.cpp = {
+				{
+					name = "Launch executable",
+					type = "gdb",
+					request = "launch",
+					program = cpp.debug_program,
+					cwd = function() return cpp.root() end,
+					stopAtBeginningOfMainSubprogram = false,
+				},
+				{
+					name = "Attach to process",
+					type = "gdb",
+					request = "attach",
+					pid = require("dap.utils").pick_process,
+					cwd = function() return cpp.root() end,
+				},
+			}
+			dap.configurations.c = dap.configurations.cpp
+			dapui.setup()
+			dap.listeners.after.event_initialized["cpp_dapui"] = dapui.open
+			dap.listeners.before.event_terminated["cpp_dapui"] = dapui.close
+			dap.listeners.before.event_exited["cpp_dapui"] = dapui.close
+		end,
 	},
 
 	{
@@ -1001,12 +1272,6 @@ require("lazy").setup({
 	-- require 'kickstart.plugins.neo-tree',
 	-- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
 
-	-- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-	--    This is the easiest way to modularize your config.
-	--
-	--  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-	{ import = "custom.plugins" },
-	--
 	-- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
 	-- Or use telescope!
 	-- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
@@ -1033,7 +1298,7 @@ require("lazy").setup({
 	},
 })
 
-require("custom.cpp").setup()
+cpp.setup()
 
 -- }}}
 

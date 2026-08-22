@@ -259,6 +259,7 @@ hl.bind(mainMod .. ' + SHIFT + L', hl.dsp.exec_cmd('~/.local/bin/lock-menu',    
 hl.bind('SHIFT + Print',           hl.dsp.exec_cmd('~/.local/bin/screenshot-menu',                      { float = true, center = true, stay_focused = true }), { description = 'Take screenshot' })
 hl.bind('ALT + Print',             hl.dsp.exec_cmd('~/.local/bin/screenrecord-menu',                    { float = true, center = true, stay_focused = true }), { description = 'Take screen recording' })
 hl.bind(mainMod .. ' + SHIFT + P', hl.dsp.exec_cmd('~/.local/bin/power-menu',                           { float = true, center = true, stay_focused = true }), { description = 'Open power mode menu' })
+hl.bind(mainMod .. ' + W',         hl.dsp.exec_cmd('~/.local/bin/layout-menu',                          { float = true, center = true, stay_focused = true }), { description = 'Hyprland layout menu' })
 
 hl.bind(mainMod .. ' + Left',    hl.dsp.focus({ direction = 'left' }),  { description = 'Move focus left' })
 hl.bind(mainMod .. ' + Right',   hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
