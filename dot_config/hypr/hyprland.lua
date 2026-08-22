@@ -180,6 +180,12 @@ hl.config({
     },
 })
 
+hl.config({
+    cursor = {
+        inactive_timeout = 2,
+    },
+})
+
 -- }}}
 
 -- {{{ input
@@ -246,12 +252,12 @@ hl.bind(mainMod .. ' + SHIFT + G', hl.dsp.exec_cmd('~/.local/bin/workspace_to_gr
 hl.bind(mainMod .. ' + Tab',       hl.dsp.group.next(),                                                 { description = 'Change tab in group' })
 hl.bind(mainMod .. ' + Space',     hl.dsp.exec_cmd(menu),                                               { description = 'Open launcher' })
 hl.bind(mainMod .. ' + P',         hl.dsp.window.pseudo(),                                              { description = 'Toggle pseudo tiling' })
-hl.bind(mainMod .. ' + J',         hl.dsp.layout('togglesplit'),                                        { description = 'Toggle window splitting' })
-hl.bind(mainMod .. ' + H',         hl.dsp.exec_cmd('kitty --class kitty_btop --hold btop'),             { description = 'Open btop' })
-hl.bind(mainMod .. ' + L',         hl.dsp.exec_cmd('~/.local/bin/lock-session.sh'),                     { description = 'Lock session' })
+hl.bind(mainMod .. ' + SHIFT + S', hl.dsp.layout('togglesplit'),                                        { description = 'Toggle window splitting' })
+hl.bind(mainMod .. ' + SHIFT + H', hl.dsp.exec_cmd('kitty --class kitty_btop --hold btop'),             { description = 'Open btop' })
+hl.bind(mainMod .. ' + Escape',    hl.dsp.exec_cmd('~/.local/bin/lock-session.sh'),                     { description = 'Lock session' })
 hl.bind('Print',                   hl.dsp.exec_cmd('~/.local/bin/screenshot-menu -r -c'),               { description = 'Take screenshot' })
 hl.bind(mainMod .. ' + V',         hl.dsp.exec_cmd('~/.local/bin/cliphist_show.sh'),                    { description = 'Open clipboard history' })
-hl.bind(mainMod .. ' + K',         hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
+hl.bind(mainMod .. ' + Slash',     hl.dsp.exec_cmd('~/.local/bin/get_binds.sh | hyprlauncher --dmenu'), { description = 'Show keybinds' })
 hl.bind(mainMod .. ' + SHIFT + K', hl.dsp.exec_cmd('pkill -RTMIN -x wvkbd-deskintl'),                   { description = 'Toggle screen keyboard' })
 
 hl.bind(mainMod .. ' + ALT + I',   hl.dsp.exec_cmd('~/.local/bin/idle-menu',                            { float = true, center = true, stay_focused = true }), { description = 'Toggle hypridle' })
@@ -265,15 +271,24 @@ hl.bind(mainMod .. ' + Left',    hl.dsp.focus({ direction = 'left' }),  { descri
 hl.bind(mainMod .. ' + Right',   hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
 hl.bind(mainMod .. ' + Up',      hl.dsp.focus({ direction = 'up' }),    { description = 'Move focus up' })
 hl.bind(mainMod .. ' + Down',    hl.dsp.focus({ direction = 'down' }),  { description = 'Move focus down' })
-hl.bind(mainMod .. ' + ALT + H', hl.dsp.focus({ direction = 'left' }),  { description = 'Move focus left' })
-hl.bind(mainMod .. ' + ALT + L', hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
-hl.bind(mainMod .. ' + ALT + K', hl.dsp.focus({ direction = 'up' }),    { description = 'Move focus up' })
-hl.bind(mainMod .. ' + ALT + J', hl.dsp.focus({ direction = 'down' }),  { description = 'Move focus down' })
+hl.bind(mainMod .. ' + H',       hl.dsp.focus({ direction = 'left' }),  { description = 'Move focus left' })
+hl.bind(mainMod .. ' + L',       hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
+hl.bind(mainMod .. ' + K',       hl.dsp.focus({ direction = 'up' }),    { description = 'Move focus up' })
+hl.bind(mainMod .. ' + J',       hl.dsp.focus({ direction = 'down' }),  { description = 'Move focus down' })
 
 hl.bind(mainMod .. ' + SHIFT + Left',  hl.dsp.window.move({ direction = 'left' }),  { description = 'Move window left' })
 hl.bind(mainMod .. ' + SHIFT + Right', hl.dsp.window.move({ direction = 'right' }), { description = 'Move window right' })
 hl.bind(mainMod .. ' + SHIFT + Up',    hl.dsp.window.move({ direction = 'up' }),    { description = 'Move window up' })
 hl.bind(mainMod .. ' + SHIFT + Down',  hl.dsp.window.move({ direction = 'down' }),  { description = 'Move window down' })
+hl.bind(mainMod .. ' + CTRL + H',      hl.dsp.window.move({ direction = 'left' }),  { description = 'Move window left' })
+hl.bind(mainMod .. ' + CTRL + L',      hl.dsp.window.move({ direction = 'right' }), { description = 'Move window right' })
+hl.bind(mainMod .. ' + CTRL + K',      hl.dsp.window.move({ direction = 'up' }),    { description = 'Move window up' })
+hl.bind(mainMod .. ' + CTRL + J',      hl.dsp.window.move({ direction = 'down' }),  { description = 'Move window down' })
+
+hl.bind(mainMod .. ' + ALT + H', hl.dsp.window.resize({ x = -40, y = 0, relative = true }), { repeating = true, description = 'Decrease window width' })
+hl.bind(mainMod .. ' + ALT + L', hl.dsp.window.resize({ x = 40, y = 0, relative = true }),  { repeating = true, description = 'Increase window width' })
+hl.bind(mainMod .. ' + ALT + K', hl.dsp.window.resize({ x = 0, y = -40, relative = true }), { repeating = true, description = 'Decrease window height' })
+hl.bind(mainMod .. ' + ALT + J', hl.dsp.window.resize({ x = 0, y = 40, relative = true }),  { repeating = true, description = 'Increase window height' })
 
 for i = 1, 10 do
     local key = tostring(i % 10)
@@ -287,7 +302,7 @@ hl.bind(mainMod .. ' + SHIFT + Period', hl.dsp.workspace.move({ monitor = '+1' }
 hl.bind(mainMod .. ' + SHIFT + Comma',  hl.dsp.workspace.move({ monitor = '-1' }), { description = 'Move current workspace to previous monitor' })
 
 hl.bind(mainMod .. ' + S',         hl.dsp.workspace.toggle_special('magic'),               { description = 'Toggle special workspace' })
-hl.bind(mainMod .. ' + SHIFT + S', hl.dsp.window.move({ workspace = 'special:magic' }),   { description = 'Move to magic workspace' })
+hl.bind(mainMod .. ' + CTRL + S',  hl.dsp.window.move({ workspace = 'special:magic' }),     { description = 'Move to magic workspace' })
 
 hl.bind(mainMod .. ' + mouse_down',hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
 hl.bind(mainMod .. ' + mouse_up',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
@@ -295,9 +310,7 @@ hl.bind('mouse_right', hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scr
 hl.bind('mouse_left',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
 
 hl.bind(mainMod .. ' + mouse:272', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
-hl.bind(mainMod .. ' + CONTROL_L', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
 hl.bind(mainMod .. ' + mouse:273', hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
-hl.bind(mainMod .. ' + ALT_L',     hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
 
 hl.bind('XF86AudioRaiseVolume',  hl.dsp.exec_cmd('wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+'),       { locked = true, repeating = true, description = 'Volume raise' })
 hl.bind('XF86AudioLowerVolume',  hl.dsp.exec_cmd('wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-'),       { locked = true, repeating = true, description = 'Volume lower' })
