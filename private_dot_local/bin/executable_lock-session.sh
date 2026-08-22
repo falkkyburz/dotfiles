@@ -12,6 +12,6 @@ status=$?
 
 hyprctl dispatch dpms on >/dev/null 2>&1 || true
 brightnessctl -r >/dev/null 2>&1 || true
-brightnessctl -rd tpacpi:kbd_backlight >/dev/null 2>&1 || true
+brightnessctl --restore --device='tpacpi::kbd_backlight' >/dev/null 2>&1 || true
 
 exit "$status"
