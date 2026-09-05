@@ -101,7 +101,7 @@ export VISUAL='nvim'
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias nnna="nnn -H"
 alias activate="source .venv/bin/activate"
-alias t=date -R
+alias t='date -R'
 alias cal='cal -m'
 
 # Plugins that are not in the ZSH search path.

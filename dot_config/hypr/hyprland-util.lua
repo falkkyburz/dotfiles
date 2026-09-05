@@ -33,4 +33,22 @@ function M.ungroup_ws()
     hl.dispatch("moveoutofgroup")
 end
 
+function M.focus_left()
+    local workspace = hl.get_active_workspace()
+    if workspace and workspace.tiled_layout == "monocle" then
+        hl.dispatch(hl.dsp.layout("cycleprev"))
+    else
+        hl.dispatch(hl.dsp.focus({ direction = "left" }))
+    end
+end
+
+function M.focus_right()
+    local workspace = hl.get_active_workspace()
+    if workspace and workspace.tiled_layout == "monocle" then
+        hl.dispatch(hl.dsp.layout("cyclenext"))
+    else
+        hl.dispatch(hl.dsp.focus({ direction = "right" }))
+    end
+end
+
 return M

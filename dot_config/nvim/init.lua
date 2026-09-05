@@ -14,6 +14,9 @@ vim.g.loaded_perl_provider = 0
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
 
+-- Let Neovim's native dir.lua handle directories instead of legacy netrw.
+vim.g.loaded_netrwPlugin = 1
+
 -- }}}
 
 -- {{{ Font
@@ -186,6 +189,7 @@ vim.keymap.set("n", "<leader>q", "<cmd>quit<cr>", { desc = "Quit window" })
 vim.keymap.set("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
 vim.keymap.set("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
 vim.keymap.set("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" })
+vim.keymap.set("n", "<leader>e", "<cmd>edit .<cr>", { desc = "Open directory browser" })
 vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrease width" })
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
 vim.keymap.set("n", "<leader>x", function()
@@ -1246,14 +1250,6 @@ require("lazy").setup({
 					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end,
 			})
-		end,
-	},
-	{
-		"nvim-tree/nvim-tree.lua",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
-		config = function()
-			require("nvim-tree").setup({})
-			vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle file tree" })
 		end,
 	},
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the

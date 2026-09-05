@@ -16,3 +16,9 @@ else
 fi
 
 hyprctl reload >/dev/null
+
+# Sunshine restores its old sink as a configured default; hand playback routing
+# back to WirePlumber so connected Bluetooth outputs can be selected again.
+if command -v wpctl >/dev/null 2>&1; then
+  wpctl clear-default @DEFAULT_AUDIO_SINK@ || true
+fi

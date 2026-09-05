@@ -267,5 +267,11 @@ cmake --install "$hyprscreenpicker_dir/build/release"
 
 # Fix thunar default terminal
 mkdir -p "$HOME/.config/xfce4"
-grep -qxF 'TerminalEmulator=kitty' "$HOME/.config/xfce4/helpers.rc" 2>/dev/null || \
-  printf 'TerminalEmulator=kitty\n' > "$HOME/.config/xfce4/helpers.rc"
+helpers_file="$HOME/.config/xfce4/helpers.rc"
+touch "$helpers_file"
+if grep -q '^TerminalEmulator=' "$helpers_file"; then
+  sed -i 's/^TerminalEmulator=.*/TerminalEmulator=kitty/' "$helpers_file"
+else
+  # Start a new line even if the existing file has no trailing newline.
+  printf '\nTerminalEmulator=kitty\n' >> "$helpers_file"
+fi

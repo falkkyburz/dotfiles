@@ -33,7 +33,7 @@ hl.on('hyprland.start', function()
     hl.exec_cmd('hypridle')
     hl.exec_cmd('hyprpaper')
     hl.exec_cmd('hyprsunset')
-    hl.exec_cmd('hyprpm reload')
+--    hl.exec_cmd('hyprpm reload')
     hl.exec_cmd("hyprlauncher -d")
     hl.exec_cmd('swaync')
     hl.exec_cmd('swayosd-server')
@@ -50,6 +50,12 @@ hl.on('hyprland.start', function()
 
     -- Apps
     hl.exec_cmd('kitty', {workspace = '2 silent'})
+    hl.exec_cmd('kitty', {
+        workspace = 'special:magic silent',
+        float = true,
+        center = true,
+        size = { '(monitor_w*0.75)', '(monitor_h*0.75)' },
+    })
     hl.exec_cmd('helium-browser', {workspace = '1'})
 end)
 
@@ -79,7 +85,7 @@ hl.config({
 
         col = {
             active_border = {
-                colors = { 'rgba(33ccffee)', 'rgba(00ff99ee)' },
+                colors = { 'rgba(33ccffee)', 'rgba(33ccffee)' },
                 angle = 45,
             },
             inactive_border = 'rgba(595959aa)',
@@ -92,6 +98,21 @@ hl.config({
         force_zero_scaling = true,
     },
 })
+
+--hl.config({
+--    overview = {
+--        only_current_monitor = false,
+--        col = {
+--            active_border = 'rgba(33ccffee)',
+--            inactive_border = 'rgba(595959aa)',
+--        },
+--        search = {
+--            window_prefix = '/',
+--            workspace_prefix = '.',
+--            default_mode = 'all',
+--        },
+--    },
+--})
 
 -- }}}
 
@@ -126,29 +147,33 @@ hl.config({
     },
 })
 
-hl.curve('easeOutQuint',   { type = 'bezier', points = { { 0.23, 1 },    { 0.32, 1 } } })
-hl.curve('easeInOutCubic', { type = 'bezier', points = { { 0.65, 0.05 }, { 0.36, 1 } } })
-hl.curve('linear',         { type = 'bezier', points = { { 0, 0 },       { 1, 1 } }    })
-hl.curve('almostLinear',   { type = 'bezier', points = { { 0.5, 0.5 },   { 0.75, 1 } } })
-hl.curve('quick',          { type = 'bezier', points = { { 0.15, 0 },    { 0.1, 1 } }  })
-hl.curve("easy",           { type = "spring", mass = 1, stiffness = 71, dampening = 16 })
+-- Default curves and animations, see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
+hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1}    } })
+hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1}    } })
+hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1}       } })
+hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1}    } })
+hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1}     } })
 
-hl.animation({ leaf = 'global',        enabled = false, speed = 10,   bezier = 'default' })
-hl.animation({ leaf = 'border',        enabled = false, speed = 5.39, bezier = 'easeOutQuint' })
-hl.animation({ leaf = 'windows',       enabled = false, speed = 4.79, spring = 'easy' })
-hl.animation({ leaf = 'windowsIn',     enabled = false, speed = 4.1,  spring = 'easy',         style = 'popin 87%' })
-hl.animation({ leaf = 'windowsOut',    enabled = false, speed = 1.49, bezier = 'linear',       style = 'popin 87%' })
-hl.animation({ leaf = 'fadeIn',        enabled = false, speed = 1.73, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fadeOut',       enabled = false, speed = 1.46, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fade',          enabled = false, speed = 3.03, bezier = 'quick' })
-hl.animation({ leaf = 'layers',        enabled = false, speed = 3.81, bezier = 'easeOutQuint' })
-hl.animation({ leaf = 'layersIn',      enabled = false, speed = 4,    bezier = 'easeOutQuint', style = 'fade' })
-hl.animation({ leaf = 'layersOut',     enabled = false, speed = 1.5,  bezier = 'linear',       style = 'fade' })
-hl.animation({ leaf = 'fadeLayersIn',  enabled = false, speed = 1.79, bezier = 'almostLinear' })
-hl.animation({ leaf = 'fadeLayersOut', enabled = false, speed = 1.39, bezier = 'almostLinear' })
-hl.animation({ leaf = 'workspaces',    enabled = false, speed = 1.94, bezier = 'almostLinear', style = 'slide' })
-hl.animation({ leaf = 'workspacesIn',  enabled = false, speed = 1.21, bezier = 'almostLinear', style = 'slide' })
-hl.animation({ leaf = 'workspacesOut', enabled = false, speed = 1.94, bezier = 'almostLinear', style = 'slide' })
+-- Default springs
+hl.curve("easy",           { type = "spring", mass = 1, stiffness = 238.1191, dampening = 24.21279333 })
+
+hl.animation({ leaf = "global",        enabled = true,  speed = 10,   bezier = "default" })
+hl.animation({ leaf = "border",        enabled = true,  speed = 5.39, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windows",       enabled = true,  speed = 4.79, spring = "easy" })
+hl.animation({ leaf = "windowsIn",     enabled = true,  speed = 4.1,  spring = "easy",         style = "popin 87%" })
+hl.animation({ leaf = "windowsOut",    enabled = true,  speed = 1.49, bezier = "linear",       style = "popin 87%" })
+hl.animation({ leaf = "fadeIn",        enabled = true,  speed = 1.73, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeOut",       enabled = true,  speed = 1.46, bezier = "almostLinear" })
+hl.animation({ leaf = "fade",          enabled = true,  speed = 3.03, bezier = "quick" })
+hl.animation({ leaf = "layers",        enabled = true,  speed = 3.81, bezier = "easeOutQuint" })
+hl.animation({ leaf = "layersIn",      enabled = true,  speed = 4,    bezier = "easeOutQuint", style = "fade" })
+hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "fade" })
+hl.animation({ leaf = "fadeLayersIn",  enabled = true,  speed = 1.79, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeLayersOut", enabled = true,  speed = 1.39, bezier = "almostLinear" })
+hl.animation({ leaf = "workspaces",    enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 1.21, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
 hl.animation({ leaf = 'zoomFactor',    enabled = false, speed = 7,    bezier = 'quick' })
 
 hl.config({
@@ -188,6 +213,37 @@ hl.config({
 
 -- }}}
 
+-- {{{ debug
+
+hl.config({
+    debug = {
+        -- overlay = false,
+        -- damage_blink = false,
+        -- gl_debugging = false,
+        -- disable_logs = true,
+        -- disable_time = true,
+        -- damage_tracking = 2,
+        -- enable_stdout_logs = false,
+        -- manual_crash = 0,
+        -- suppress_errors = false,
+        -- disable_scale_checks = false,
+        -- error_limit = 5,
+        -- error_position = 0,
+        -- colored_stdout_logs = true,
+        -- log_damage = true,
+        -- pass = false,
+        -- full_cm_proto = false,
+        -- ds_handle_same_buffer = true,
+        -- ds_handle_same_buffer_fifo = true,
+        -- render_solitary_wo_damage = false,
+        -- vfr = true,
+        -- invalidate_buffers = 1,
+        -- invalidate_fp16 = 1,
+    },
+})
+
+-- }}}
+
 -- {{{ input
 
 hl.config({
@@ -195,7 +251,7 @@ hl.config({
         kb_layout = 'us',
         kb_variant = '',
         kb_model = '',
-        kb_options = 'caps:escape,compose:ralt',
+        kb_options = 'compose:ralt',
         kb_rules = '',
         repeat_rate = 35,
         repeat_delay = 300,
@@ -239,6 +295,9 @@ hl.bind(
 hl.bind(mainMod .. ' + SHIFT + E', hl.dsp.exec_cmd('thunar'),                                           { description = 'Open file explorer' })
 hl.bind(mainMod .. ' + E',         hl.dsp.exec_cmd('kitty --class kitty_ranger --directory "$(~/.local/bin/terminal-cwd.sh)" ranger', {float = true, center = true, size = { "(monitor_w*0.75)", "(monitor_h*0.75)" }, stay_focused = true}), { description = 'Open Ranger file manager' })
 hl.bind(mainMod .. ' + D',         hl.dsp.exec_cmd('~/.local/bin/dark-mode.sh'),                        { description = 'Toggle dark/light mode' })
+hl.bind(mainMod .. ' + SHIFT + D', function()
+    hl.config({ debug = { overlay = not hl.get_config('debug:overlay') } })
+end, { description = 'Toggle debug overlay' })
 hl.bind(mainMod .. ' + SHIFT + N', hl.dsp.exec_cmd('nm-connection-editor'),                             { description = 'Open NM Connection Editor' })
 hl.bind(mainMod .. ' + N',         hl.dsp.exec_cmd('kitty --class kitty_impala --hold impala'),         { description = 'Open Impala wifi TUI' })
 hl.bind(mainMod .. ' + R',         hl.dsp.exec_cmd('qalculate-gtk'),                                    { description = 'Open Qalculate' })
@@ -249,7 +308,7 @@ hl.bind(mainMod .. ' + F',         hl.dsp.window.float({ action = 'toggle' }),  
 hl.bind(mainMod .. ' + SHIFT + F', hl.dsp.window.fullscreen(),                                          { description = 'Toggle full screen' })
 hl.bind(mainMod .. ' + G',         hl.dsp.group.toggle(),                                               { description = 'Toggle grouping (tabbed)' })
 hl.bind(mainMod .. ' + SHIFT + G', hl.dsp.exec_cmd('~/.local/bin/workspace_to_group.sh'),               { description = 'Add all windows to group' })
-hl.bind(mainMod .. ' + Tab',       hl.dsp.group.next(),                                                 { description = 'Change tab in group' })
+hl.bind(mainMod .. ' + CTRL + Tab', hl.dsp.group.next(),                                                { description = 'Change tab in group' })
 hl.bind(mainMod .. ' + Space',     hl.dsp.exec_cmd(menu),                                               { description = 'Open launcher' })
 hl.bind(mainMod .. ' + P',         hl.dsp.window.pseudo(),                                              { description = 'Toggle pseudo tiling' })
 hl.bind(mainMod .. ' + SHIFT + S', hl.dsp.layout('togglesplit'),                                        { description = 'Toggle window splitting' })
@@ -273,8 +332,8 @@ hl.bind(mainMod .. ' + Left',    hl.dsp.focus({ direction = 'left' }),  { descri
 hl.bind(mainMod .. ' + Right',   hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
 hl.bind(mainMod .. ' + Up',      hl.dsp.focus({ direction = 'up' }),    { description = 'Move focus up' })
 hl.bind(mainMod .. ' + Down',    hl.dsp.focus({ direction = 'down' }),  { description = 'Move focus down' })
-hl.bind(mainMod .. ' + H',       hl.dsp.focus({ direction = 'left' }),  { description = 'Move focus left' })
-hl.bind(mainMod .. ' + L',       hl.dsp.focus({ direction = 'right' }), { description = 'Move focus right' })
+hl.bind(mainMod .. ' + H',       util.focus_left,                         { description = 'Move focus left' })
+hl.bind(mainMod .. ' + L',       util.focus_right,                        { description = 'Move focus right' })
 hl.bind(mainMod .. ' + K',       hl.dsp.focus({ direction = 'up' }),    { description = 'Move focus up' })
 hl.bind(mainMod .. ' + J',       hl.dsp.focus({ direction = 'down' }),  { description = 'Move focus down' })
 
@@ -333,6 +392,9 @@ hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record start'), { descriptio
 hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record stop'), { release = true, description = 'Start voxtype'})
 
 hl.bind(mainMod .. ' + Period', hl.dsp.exec_cmd('kitty --class kitty_nvim --hold nvim'), { description = 'Open file Neovim' })
+
+hl.bind(mainMod .. ' + Tab', hl.dsp.overview.toggle())
+
 -- }}}
 
 -- {{{ windowrules

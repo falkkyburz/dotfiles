@@ -2,6 +2,7 @@
 set -euo pipefail
 
 virtual_output="SUNSHINE"
+builtin_output="eDP-1"
 
 monitor_exists() {
   hyprctl monitors all -j | jq -e --arg output "$1" '.[] | select(.name == $output)' >/dev/null
@@ -11,6 +12,9 @@ monitor_ready() {
   hyprctl monitors -j | jq -e --arg output "$virtual_output" \
     '.[] | select(.name == $output and .width == 2560 and .height == 1440 and .refreshRate >= 59)' >/dev/null
 }
+
+builtin_workspace=$(hyprctl monitors -j | jq -er --arg output "$builtin_output" \
+  '.[] | select(.name == $output) | .activeWorkspace.id')
 
 if ! monitor_exists "$virtual_output"; then
   hyprctl output create headless "$virtual_output" >/dev/null
@@ -28,5 +32,6 @@ if ! monitor_ready; then
   exit 1
 fi
 
-hyprctl eval "hl.dsp.workspace.move({ monitor = '$virtual_output' })" >/dev/null
-hyprctl eval "hl.monitor({ output = 'eDP-1', disabled = true })" >/dev/null
+hyprctl dispatch "hl.dsp.focus({ workspace = $builtin_workspace })" >/dev/null
+hyprctl dispatch "hl.dsp.workspace.move({ monitor = '$virtual_output' })" >/dev/null
+hyprctl eval "hl.monitor({ output = '$builtin_output', disabled = true })" >/dev/null

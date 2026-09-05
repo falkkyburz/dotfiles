@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=T3 Code Nightly
+Comment=Launch the nightly version of T3 Code
+Exec=sh -c "exec ~/.local/bin/npx t3@nightly"
+Icon=utilities-terminal
+Terminal=true
+Categories=Development;
+Keywords=T3;Code;Nightly;

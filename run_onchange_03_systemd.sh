@@ -163,6 +163,15 @@ EOF
 AddressRandomization=once
 EOF
 
+  write_root_file /etc/keyd/default.conf 0644 root root <<'EOF'
+[ids]
+*
+
+[main]
+capslock = overload(meta, esc)
+enter = overload(meta, enter)
+EOF
+
   if ((systemd_units_changed)); then
     run_as_root systemctl daemon-reload
   fi
@@ -172,6 +181,7 @@ EOF
     bluetooth.service
     docker.service
     nordvpnd.service
+    keyd.service
   )
 
   if pacman -Q networkmanager >/dev/null 2>&1; then
