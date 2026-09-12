@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+virtual_output="SUNSHINE"
+
+monitor_exists() {
+  hyprctl monitors all -j | jq -e --arg output "$1" '.[] | select(.name == $output)' >/dev/null
+}
+
+if monitor_exists "$virtual_output"; then
+  hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '2560x0', scale = '1', disabled = false })" >/dev/null
+  hyprctl dispatch "hl.dsp.workspace.move({ monitor = 'eDP-1' })" >/dev/null
+  hyprctl output remove "$virtual_output" >/dev/null
+else
+  hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '0x0', scale = '1', disabled = false })" >/dev/null
+fi
+
+hyprctl reload >/dev/null
+
+# Sunshine restores its old sink as a configured default; hand playback routing
+# back to WirePlumber so connected Bluetooth outputs can be selected again.
+if command -v wpctl >/dev/null 2>&1; then
+  wpctl clear-default @DEFAULT_AUDIO_SINK@ || true
+fi

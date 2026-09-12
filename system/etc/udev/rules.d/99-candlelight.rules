@@ -1,0 +1,2 @@
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="can*", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="606f", RUN+="/usr/bin/sh -c '/usr/bin/ip link set dev %k down; /usr/bin/ip link set dev %k type can bitrate 500000 restart-ms 100; /usr/bin/ip link set dev %k up'"
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="can*", DRIVERS=="gs_usb", RUN+="/usr/bin/sh -c '/usr/bin/ip link set dev %k down; /usr/bin/ip link set dev %k type can bitrate 500000 restart-ms 100; /usr/bin/ip link set dev %k up'"

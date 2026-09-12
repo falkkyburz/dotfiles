@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+interval="${INTERVAL:-1}"
+samples="${SAMPLES:-5}"
+
+if (( $# == 0 )); then
+  echo "Usage: ${0##*/} PROCESS_NAME [PROCESS_NAME ...]"
+  echo
+  echo "Example:"
+  echo "  ${0##*/} firefox clangd waybar"
+  echo
+  echo "Optional env vars:"
+  echo "  INTERVAL=1 SAMPLES=5 ${0##*/} firefox"
+  exit 1
+fi
+
+if ! command -v pidstat >/dev/null 2>&1; then
+  echo "Error: pidstat not found. Install it with: sudo pacman -S sysstat" >&2
+  exit 1
+fi
+
+printf "%-24s %8s\n" "PROCESS" "AVG_CPU%"
+printf "%-24s %8s\n" "-------" "--------"
+
+for name in "$@"; do
+  # -C matches command name regex
+  # The awk block sums all Average lines matching the process name.
+  avg="$(
+    pidstat -u -C "$name" "$interval" "$samples" 2>/dev/null |
+      awk '
+        $1 == "Average:" && $NF != "Command" {
+          cpu += $(NF-2)
+          found = 1
+        }
+        END {
+          if (found)
+            printf "%.2f", cpu
+          else
+            printf "0.00"
+        }
+      '
+  )"
+
+  printf "%-24s %8s\n" "$name" "$avg"
+done

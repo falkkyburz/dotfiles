@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -u
+
+packages=(
+  hyprland
+  hyprpaper
+  hyprlock
+  hypridle
+  hyprpicker
+  hyprsunset
+  hyprpolkitagent
+  hyprlauncher
+  hyprpwcenter
+  hyprshutdown
+  hyprsysteminfo
+  hyprwire
+  xdg-desktop-portal-hyprland
+  aquamarine
+  hyprcursor
+  hyprgraphics
+  hyprlang
+  hyprland-protocols
+  hyprland-guiutils
+  hyprland-qt-support
+  hyprqt6engine
+  hyprtoolkit
+  hyprutils
+  hyprwayland-scanner
+  hyprland-meta
+)
+
+for package in "${packages[@]}"; do
+  pacman -Q "$package" 2>/dev/null || pacman -Q "$package-git" 2>/dev/null || printf '%s not installed\n' "$package"
+done

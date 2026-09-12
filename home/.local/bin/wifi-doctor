@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SSID="${1:-}"
+
+ok() {
+  printf '[ok] %s\n' "$1"
+}
+
+warn() {
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  printf '[fail] %s\n' "$1"
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+confirm() {
+  local prompt="$1" reply
+
+  printf '%s [y/N] ' "$prompt"
+  read -r reply
+  [[ "$reply" == y || "$reply" == Y || "$reply" == yes || "$reply" == YES ]]
+}
+
+ssid_hex() {
+  printf '%s' "$1" | od -An -tx1 | tr -d ' \n'
+}
+
+print_section() {
+  printf '\n%s\n' "$1"
+}
+
+check_binary() {
+  local name="$1"
+
+  if have "$name"; then
+    ok "found $name at $(command -v "$name")"
+  else
+    fail "missing $name"
+  fi
+}
+
+check_service() {
+  local service="$1"
+
+  if systemctl is-active --quiet "$service"; then
+    ok "$service is running"
+  else
+    warn "$service is not running"
+  fi
+}
+
+print_nm_wifi_profiles() {
+  if ! have nmcli; then
+    warn 'cannot list NetworkManager profiles without nmcli'
+    return
+  fi
+
+  nmcli -t -f NAME,TYPE connection show |
+    while IFS=: read -r name type; do
+      [[ "$type" == '802-11-wireless' ]] || continue
+      printf '  %s\n' "$name"
+    done
+}
+
+print_iwd_profiles() {
+  if [[ ! -d /var/lib/iwd ]]; then
+    warn '/var/lib/iwd does not exist'
+    return
+  fi
+
+  if sudo -n true 2>/dev/null; then
+    sudo find /var/lib/iwd -maxdepth 1 \( -name '*.psk' -o -name '*.8021x' \) -printf '  %f\n' 2>/dev/null || true
+  else
+    warn 'sudo is required to list iwd saved authentication files in /var/lib/iwd'
+  fi
+}
+
+delete_nm_wifi_profiles() {
+  local target_ssid="$1" name type profile_ssid deleted=0 profiles_file
+
+  profiles_file="$(mktemp)"
+  nmcli -t -f NAME,TYPE connection show >"$profiles_file"
+
+  while IFS=: read -r name type; do
+    [[ "$type" == '802-11-wireless' ]] || continue
+
+    if [[ -n "$target_ssid" ]]; then
+      profile_ssid="$(nmcli -g 802-11-wireless.ssid connection show "$name" 2>/dev/null || true)"
+      [[ "$name" == "$target_ssid" || "$profile_ssid" == "$target_ssid" ]] || continue
+    fi
+
+    nmcli connection delete "$name"
+    deleted=1
+  done <"$profiles_file"
+
+  rm -f "$profiles_file"
+
+  if ((deleted == 0)); then
+    ok 'no matching NetworkManager Wi-Fi profiles found'
+  fi
+}
+
+delete_iwd_profiles() {
+  local target_ssid="$1" hex
+
+  if [[ ! -d /var/lib/iwd ]]; then
+    ok 'no iwd profile directory exists'
+    return
+  fi
+
+  if [[ -n "$target_ssid" ]]; then
+    hex="$(ssid_hex "$target_ssid")"
+    sudo rm -f \
+      "/var/lib/iwd/${target_ssid}.psk" \
+      "/var/lib/iwd/${target_ssid}.8021x" \
+      "/var/lib/iwd/=${hex}.psk" \
+      "/var/lib/iwd/=${hex}.8021x"
+    ok "removed matching iwd auth files for $target_ssid"
+  else
+    sudo find /var/lib/iwd -maxdepth 1 \( -name '*.psk' -o -name '*.8021x' \) -delete
+    ok 'removed all iwd saved auth files'
+  fi
+}
+
+print_recent_symptoms() {
+  if ! have journalctl; then
+    warn 'cannot inspect journal without journalctl'
+    return
+  fi
+
+  local log
+  log="$(journalctl -b -u NetworkManager -u iwd --no-pager 2>/dev/null || true)"
+
+  if rg -q 'Error loading /var/lib/iwd/.*\.(psk|8021x)' <<<"$log"; then
+    warn 'detected iwd failing to load a saved auth profile'
+  else
+    ok 'no iwd saved-profile load errors found this boot'
+  fi
+
+  if rg -q 'connect-failed, status: 1' <<<"$log"; then
+    warn 'detected iwd association/authentication failures this boot'
+  else
+    ok 'no iwd connect-failed status 1 entries found this boot'
+  fi
+
+  if rg -q "reason 'no-secrets'|Secrets were required" <<<"$log"; then
+    warn 'detected NetworkManager missing-secret failures this boot'
+  else
+    ok 'no NetworkManager missing-secret failures found this boot'
+  fi
+}
+
+printf 'Wi-Fi doctor\n'
+if [[ -n "$SSID" ]]; then
+  printf 'Target SSID: %s\n' "$SSID"
+else
+  printf 'Target SSID: all saved Wi-Fi auth state\n'
+fi
+
+print_section 'Binaries'
+check_binary nmcli
+check_binary iwctl
+check_binary rg
+check_binary systemctl
+
+print_section 'Services'
+check_service NetworkManager.service
+check_service iwd.service
+
+print_section 'Devices'
+if have nmcli; then
+  nmcli -f DEVICE,TYPE,STATE,CONNECTION device status
+else
+  warn 'cannot show devices without nmcli'
+fi
+
+print_section 'Saved NetworkManager Wi-Fi profiles'
+print_nm_wifi_profiles
+
+print_section 'Saved iwd auth profiles'
+print_iwd_profiles
+
+print_section 'Recent symptoms'
+print_recent_symptoms
+
+print_section 'Clear cached Wi-Fi authentication state'
+if [[ -n "$SSID" ]]; then
+  prompt="Delete saved NetworkManager and iwd auth state for '$SSID'?"
+else
+  prompt='Delete all saved NetworkManager Wi-Fi profiles and iwd auth files?'
+fi
+
+if confirm "$prompt"; then
+  delete_nm_wifi_profiles "$SSID"
+  delete_iwd_profiles "$SSID"
+  printf '\nRestart services to force clean state:\n'
+  printf '  sudo systemctl restart iwd NetworkManager\n'
+else
+  ok 'left saved Wi-Fi auth state unchanged'
+fi

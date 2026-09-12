@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+utils_dir="${HOME}/dev/dotfiles-utils"
+build_dir="$utils_dir/build/release"
+target="${HOME}/.local/bin/minibar-gpu-load"
+
+run_as_root() {
+  if ((EUID == 0)); then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+# Keep no-op applies quiet, but preserve diagnostics when either build step fails.
+if ! build_output=$(
+  {
+    cmake -S "$utils_dir" -B "$build_dir" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${HOME}/.local" &&
+      cmake --build "$build_dir" --target minibar-gpu-load
+  } 2>&1
+); then
+  printf '%s\n' "$build_output" >&2
+  exit 1
+fi
+
+changed=0
+if [[ -L "$target" ]] || ! cmp -s "$build_dir/minibar-gpu-load" "$target" ||
+   [[ "$(stat -c '%a:%u:%g' "$target" 2>/dev/null || true)" != "755:$(id -u):$(id -g)" ]]; then
+  install -D -m 0755 "$build_dir/minibar-gpu-load" "$target"
+  changed=1
+fi
+
+# Replacing the binary clears capabilities; also repair capability drift.
+if [[ "$(getcap "$target")" != "$target cap_perfmon=ep" ]]; then
+  run_as_root setcap cap_perfmon=ep "$target"
+  changed=1
+fi
+
+if ((changed)); then
+  printf 'Installed minibar-gpu-load with CAP_PERFMON. Restart run-minibar.sh to enable it.\n'
+fi

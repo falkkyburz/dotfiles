@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ok() {
+  printf '[ok] %s\n' "$1"
+}
+
+warn() {
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  printf '[fail] %s\n' "$1"
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+check_binary() {
+  local name="$1"
+  if have "$name"; then
+    ok "found $name at $(command -v "$name")"
+  else
+    fail "missing $name"
+  fi
+}
+
+check_file_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+
+  if [[ ! -f "$file" ]]; then
+    fail "$label: missing $file"
+    return
+  fi
+
+  if rg -Fq "$needle" "$file"; then
+    ok "$label"
+  else
+    fail "$label"
+  fi
+}
+
+printf 'Keyring doctor\n'
+printf 'Session: %s\n' "${XDG_CURRENT_DESKTOP:-unknown}"
+printf 'Wayland display: %s\n' "${WAYLAND_DISPLAY:-unset}"
+printf '\n'
+
+printf 'Binaries\n'
+check_binary kwalletd6
+check_binary ksecretd
+check_binary secret-tool
+check_binary qdbus6
+check_binary kwallet-query
+printf '\n'
+
+printf 'PAM and startup\n'
+check_file_contains /etc/pam.d/login 'auth       optional     pam_kwallet5.so' 'login PAM contains kwallet auth hook'
+check_file_contains /etc/pam.d/login 'session    optional     pam_kwallet5.so auto_start force_run kwalletd=/usr/bin/ksecretd' 'login PAM contains kwallet session hook'
+check_file_contains "$HOME/.config/hypr/hyprland.lua" "hl.exec_cmd('/usr/lib/pam_kwallet_init')" 'Hyprland starts pam_kwallet_init'
+printf '\n'
+
+printf 'Processes\n'
+if pgrep -x ksecretd >/dev/null 2>&1; then
+  ok 'ksecretd is running'
+else
+  warn 'ksecretd is not running'
+fi
+
+if pgrep -x kwalletd6 >/dev/null 2>&1; then
+  ok 'kwalletd6 is running'
+else
+  warn 'kwalletd6 is not running'
+fi
+
+if pgrep -f '/usr/lib/pam_kwallet_init' >/dev/null 2>&1; then
+  ok 'pam_kwallet_init has started in this session'
+else
+  warn 'pam_kwallet_init is not currently running (normal after startup)'
+fi
+printf '\n'
+
+printf 'DBus state\n'
+if have qdbus6 && qdbus6 org.kde.kwalletd6 /modules/kwalletd6 org.kde.KWallet.isOpen kdewallet >/tmp/keyring-doctor.$$ 2>/dev/null; then
+  wallet_state="$(tr -d '\n' </tmp/keyring-doctor.$$)"
+  rm -f /tmp/keyring-doctor.$$
+  if [[ "$wallet_state" == "true" ]]; then
+    ok 'kdewallet is open'
+  else
+    warn 'kdewallet is closed'
+  fi
+else
+  rm -f /tmp/keyring-doctor.$$ 2>/dev/null || true
+  warn 'could not query kwalletd6 over DBus'
+fi
+
+if busctl --user list 2>/dev/null | rg -q 'org\.kde\.secretservicecompat'; then
+  ok 'Secret Service compatibility service is present on DBus'
+else
+  warn 'Secret Service compatibility service is not present on DBus'
+fi
+printf '\n'
+
+printf 'Wallet files\n'
+if [[ -f "$HOME/.local/share/kwalletd/kdewallet.kwl" ]]; then
+  size="$(stat -c '%s' "$HOME/.local/share/kwalletd/kdewallet.kwl")"
+  ok "wallet file exists at ~/.local/share/kwalletd/kdewallet.kwl (${size} bytes)"
+else
+  warn 'wallet file ~/.local/share/kwalletd/kdewallet.kwl does not exist'
+fi
+
+if [[ -f "$HOME/.config/kwalletrc" ]]; then
+  ok 'kwalletrc exists'
+else
+  warn 'kwalletrc does not exist'
+fi
+printf '\n'
+
+printf 'Hint\n'
+printf 'If auto-unlock still seems broken, verify the wallet is named kdewallet and uses your login password.\n'

@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: cmake-uninstall [OPTIONS] BUILD_DIR|INSTALL_MANIFEST
+
+Remove files recorded by CMake's install_manifest.txt. If present, paths from
+install_manifest.txt.extra are included too. Symlinks beside installed files
+that resolve to a manifest entry are detected automatically. The default mode
+only prints what would be removed.
+
+Options:
+  --execute        Remove the listed files after confirmation
+  --yes            Skip confirmation (requires --execute)
+  --prefix PATH    Allowed installation prefix (default: /usr/local)
+  -h, --help       Show this help
+
+Examples:
+  cmake-uninstall build
+  cmake-uninstall --execute build
+  cmake-uninstall --execute /path/to/build/install_manifest.txt
+EOF
+}
+
+die() {
+    printf 'cmake-uninstall: %s\n' "$*" >&2
+    exit 1
+}
+
+execute=false
+assume_yes=false
+prefix=/usr/local
+source_path=
+
+while (($#)); do
+    case "$1" in
+        --execute)
+            execute=true
+            ;;
+        --yes)
+            assume_yes=true
+            ;;
+        --prefix)
+            (($# >= 2)) || die '--prefix requires a path'
+            prefix=$2
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            (($# == 1)) || die 'provide exactly one build directory or manifest'
+            source_path=$1
+            shift
+            break
+            ;;
+        -*)
+            die "unknown option: $1"
+            ;;
+        *)
+            [[ -z $source_path ]] || die 'provide exactly one build directory or manifest'
+            source_path=$1
+            ;;
+    esac
+    shift
+done
+
+[[ -n $source_path ]] || {
+    usage >&2
+    exit 2
+}
+
+if $assume_yes && ! $execute; then
+    die '--yes requires --execute'
+fi
+
+if [[ -d $source_path ]]; then
+    manifest=${source_path%/}/install_manifest.txt
+else
+    manifest=$source_path
+fi
+
+[[ -r $manifest ]] || die "cannot read manifest: $manifest"
+
+declare -a manifests=("$manifest")
+if [[ -e $manifest.extra ]]; then
+    [[ -r $manifest.extra ]] || die "cannot read supplemental manifest: $manifest.extra"
+    manifests+=("$manifest.extra")
+fi
+
+prefix=$(realpath --canonicalize-missing -- "$prefix")
+[[ $prefix == /* && $prefix != / ]] || die "unsafe prefix: $prefix"
+
+# Resolve parent directories, but preserve the final symlink: rm removes the
+# link itself, not its target.
+checked_path() {
+    local input="$1" parent resolved
+    parent=$(realpath --canonicalize-missing -- "$(dirname -- "$input")") || return 1
+    resolved=$(realpath --canonicalize-missing --no-symlinks -- "$parent/$(basename -- "$input")") || return 1
+    [[ $resolved == "$prefix"/* ]] || die "refusing path outside $prefix: $input"
+    printf '%s\n' "$resolved"
+}
+
+declare -a paths=()
+declare -A seen=()
+
+for manifest_file in "${manifests[@]}"; do
+    while IFS= read -r path || [[ -n $path ]]; do
+        path=${path%$'\r'}
+        [[ -n $path ]] || continue
+        [[ $path == /* ]] || die "manifest contains a relative path: $path"
+
+        path=$(checked_path "$path")
+        [[ $path == "$prefix"/* ]] || die "refusing path outside $prefix: $path"
+
+        if [[ -z ${seen["$path"]+present} ]]; then
+            paths+=("$path")
+            seen["$path"]=1
+        fi
+    done < "$manifest_file"
+done
+
+((${#paths[@]})) || die "manifest contains no files: $manifest"
+
+declare -A installed_targets=()
+declare -A install_dirs=()
+declare -A discovered_symlinks=()
+
+for path in "${paths[@]}"; do
+    [[ -e $path || -L $path ]] || continue
+    installed_targets["$(realpath --canonicalize-missing -- "$path")"]=1
+    install_dirs["${path%/*}"]=1
+done
+
+shopt -s nullglob dotglob
+for directory in "${!install_dirs[@]}"; do
+    [[ -d $directory ]] || continue
+
+    for candidate in "$directory"/*; do
+        [[ -L $candidate ]] || continue
+        [[ -n ${installed_targets["$(realpath --canonicalize-missing -- "$candidate")"]+present} ]] || continue
+
+        candidate=$(checked_path "$candidate")
+        [[ $candidate == "$prefix"/* ]] || die "refusing symlink outside $prefix: $candidate"
+        [[ -z ${seen["$candidate"]+present} ]] || continue
+
+        paths+=("$candidate")
+        seen["$candidate"]=1
+        discovered_symlinks["$candidate"]=1
+    done
+done
+shopt -u nullglob dotglob
+
+declare -a removable=()
+for path in "${paths[@]}"; do
+    if [[ -d $path && ! -L $path ]]; then
+        printf 'skip directory  %s\n' "$path"
+    elif [[ -e $path || -L $path ]]; then
+        if [[ -n ${discovered_symlinks["$path"]+present} ]]; then
+            printf 'remove symlink  %s\n' "$path"
+        else
+            printf 'remove          %s\n' "$path"
+        fi
+        removable+=("$path")
+    else
+        printf 'already absent  %s\n' "$path"
+    fi
+done
+
+printf '\nCMake custom install scripts may create files absent from the manifest.\n'
+
+if ! $execute; then
+    printf 'Dry run only. Re-run with --execute to remove listed files.\n'
+    exit 0
+fi
+
+((${#removable[@]})) || {
+    printf 'Nothing to remove.\n'
+    exit 0
+}
+
+if ! $assume_yes; then
+    [[ -t 0 ]] || die 'confirmation requires a terminal; use --yes to proceed non-interactively'
+    printf 'Remove %d file(s) from %s? [y/N] ' "${#removable[@]}" "$prefix"
+    read -r answer
+    [[ $answer == y || $answer == Y || $answer == yes || $answer == YES ]] || {
+        printf 'Cancelled.\n'
+        exit 0
+    }
+fi
+
+sudo rm -f -- "${removable[@]}"
+printf 'Removed %d file(s). Empty directories were left in place.\n' "${#removable[@]}"

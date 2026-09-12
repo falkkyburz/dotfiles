@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+# Open a deliberately plain-HTTP page. The hotel should redirect it
+# to the actual captive portal.
+portal_url='http://neverssl.com/'
+
+last_state=''
+
+show_notification() {
+  local action
+
+  action="$(
+    notify-send \
+      --app-name='NetworkManager' \
+      --icon='network-wireless' \
+      --urgency=normal \
+      --action='open=Open login page' \
+      'Wi-Fi login required' \
+      'This network appears to use a captive portal.'
+  )" || return
+
+  if [[ $action == open ]]; then
+    setsid -f xdg-open "$portal_url" >/dev/null 2>&1
+  fi
+}
+
+check_state() {
+  local force_check="${1:-false}"
+  local state
+
+  if [[ $force_check == true ]]; then
+    state="$(LC_ALL=C nmcli -t networking connectivity check 2>/dev/null)" ||
+      return
+  else
+    state="$(LC_ALL=C nmcli -t networking connectivity 2>/dev/null)" ||
+      return
+  fi
+
+  if [[ $state == portal && $last_state != portal ]]; then
+    show_notification &
+  fi
+
+  last_state="$state"
+}
+
+# Check immediately when the script starts.
+check_state true
+
+# Recheck whenever NetworkManager reports a change.
+while true; do
+  while IFS= read -r _; do
+    sleep 1
+    check_state
+  done < <(LC_ALL=C nmcli monitor)
+
+  # Restart monitoring if NetworkManager was restarted.
+  sleep 2
+done

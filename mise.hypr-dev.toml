@@ -1,0 +1,14 @@
+# Optional source checkouts for Hypr development.
+[bootstrap.repos]
+"~/dev/Hyprland" = { url = "https://github.com/hyprwm/Hyprland.git" }
+"~/dev/aquamarine" = { url = "https://github.com/hyprwm/aquamarine.git" }
+"~/dev/hypridle" = { url = "https://github.com/hyprwm/hypridle.git" }
+"~/dev/hyprlauncher" = { url = "https://github.com/falkkyburz/hyprlauncher.git" }
+"~/dev/hyprlock" = { url = "https://github.com/falkkyburz/hyprlock.git" }
+"~/dev/hyprpaper" = { url = "https://github.com/hyprwm/hyprpaper.git" }
+"~/dev/hyprpicker" = { url = "https://github.com/hyprwm/hyprpicker.git" }
+"~/dev/hyprpolkitagent" = { url = "https://github.com/hyprwm/hyprpolkitagent.git" }
+"~/dev/hyprscreenpicker" = { url = "https://github.com/falkkyburz/hyprscreenpicker.git" }
+"~/dev/hyprtoolkit" = { url = "https://github.com/hyprwm/hyprtoolkit.git" }
+"~/dev/hyprutils" = { url = "https://github.com/hyprwm/hyprutils.git" }
+"~/dev/xdg-desktop-portal-hyprland" = { url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git" }

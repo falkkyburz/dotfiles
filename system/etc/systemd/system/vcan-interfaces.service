@@ -1,0 +1,15 @@
+[Unit]
+Description=Create persistent vcan interfaces
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/modprobe vcan
+ExecStart=/usr/bin/sh -c '/usr/bin/ip link show vcan0 >/dev/null 2>&1 || /usr/bin/ip link add dev vcan0 type vcan'
+ExecStart=/usr/bin/sh -c '/usr/bin/ip link show vcan1 >/dev/null 2>&1 || /usr/bin/ip link add dev vcan1 type vcan'
+ExecStart=/usr/bin/ip link set dev vcan0 up
+ExecStart=/usr/bin/ip link set dev vcan1 up
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

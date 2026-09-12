@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Windows VM Stop
+Comment=Stop Dockur Windows VM
+Exec=sh -c "exec ~/.local/bin/windows-vm-stop.sh"
+Icon=computer
+Terminal=true
+Categories=System;
+StartupNotify=true

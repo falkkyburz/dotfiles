@@ -1,0 +1,8 @@
+# Optional personal development checkouts.
+[bootstrap.repos]
+"~/dev/amateurfunk" = { url = "https://github.com/falkkyburz/amateurfunk.git" }
+"~/dev/minirack" = { url = "https://github.com/falkkyburz/minirack.git" }
+"~/dev/start" = { url = "https://github.com/falkkyburz/start.git" }
+"~/dev/qmk_firmware" = { url = "https://github.com/falkkyburz/qmk_firmware.git" }
+"~/dev/cantp" = { url = "https://github.com/falkkyburz/cantp.git" }
+"~/dev/falkkyburz.github.io" = { url = "https://github.com/falkkyburz/falkkyburz.github.io.git" }

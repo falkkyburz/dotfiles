@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+set -u
+
+status=0
+
+ok() {
+  printf '[ok]   %s\n' "$1"
+}
+
+warn() {
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  status=1
+  printf '[fail] %s\n' "$1"
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+exe_path() {
+  local name="$1"
+
+  if have "$name"; then
+    command -v "$name"
+    return 0
+  fi
+
+  if [[ -x "/usr/lib/$name" ]]; then
+    printf '/usr/lib/%s\n' "$name"
+    return 0
+  fi
+
+  return 1
+}
+
+check_executable() {
+  local name="$1" path
+
+  if path="$(exe_path "$name")"; then
+    ok "found executable: $name ($path)"
+  else
+    fail "missing executable: $name"
+  fi
+}
+
+check_process() {
+  local name="$1"
+
+  if pgrep -f "(^|/)$name([[:space:]]|$)" >/dev/null 2>&1; then
+    ok "process running: $name"
+  else
+    fail "process not running: $name"
+  fi
+}
+
+check_bus_name() {
+  local name="$1"
+
+  if ! have busctl; then
+    fail "cannot check DBus name without busctl: $name"
+    return
+  fi
+
+  if busctl --user --no-pager --no-legend list --acquired 2>/dev/null |
+    awk -v name="$name" '$1 == name { found=1 } END { exit found ? 0 : 1 }'; then
+    ok "DBus name acquired: $name"
+  else
+    fail "DBus name not acquired: $name"
+  fi
+}
+
+check_unit() {
+  local unit="$1"
+
+  if ! have systemctl; then
+    warn "cannot check systemd user unit without systemctl: $unit"
+    return
+  fi
+
+  if systemctl --user --quiet is-active "$unit" 2>/dev/null; then
+    ok "systemd user unit active: $unit"
+  else
+    fail "systemd user unit not active: $unit"
+  fi
+}
+
+print_extra_portals() {
+  local file name dbus found=0
+
+  shopt -s nullglob
+  for file in /usr/share/xdg-desktop-portal/portals/*.portal; do
+    name="${file##*/}"
+    name="${name%.portal}"
+    case "$name" in
+      hyprland|gtk) continue ;;
+    esac
+
+    dbus="$(awk -F= '$1 == "DBusName" { print $2; exit }' "$file")"
+    printf '[info] installed extra portal: %s%s\n' "$name" "${dbus:+ ($dbus)}"
+    found=1
+  done
+  shopt -u nullglob
+
+  if ((found == 0)); then
+    ok 'no extra portal metadata files installed'
+  fi
+}
+
+printf 'XDG portal doctor\n'
+printf 'Desktop: %s\n' "${XDG_CURRENT_DESKTOP:-unknown}"
+printf 'Session: %s\n' "${XDG_SESSION_TYPE:-unknown}"
+printf 'Wayland display: %s\n' "${WAYLAND_DISPLAY:-unset}"
+
+printf '\nRuntime\n'
+if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "${XDG_RUNTIME_DIR:-}" ]]; then
+  ok "XDG_RUNTIME_DIR exists: $XDG_RUNTIME_DIR"
+else
+  fail 'XDG_RUNTIME_DIR is unset or missing'
+fi
+
+printf '\nExecutables\n'
+check_executable xdg-desktop-portal
+check_executable xdg-desktop-portal-hyprland
+check_executable xdg-desktop-portal-gtk
+
+printf '\nDBus names\n'
+check_bus_name org.freedesktop.portal.Desktop
+check_bus_name org.freedesktop.impl.portal.desktop.hyprland
+check_bus_name org.freedesktop.impl.portal.desktop.gtk
+
+printf '\nProcesses\n'
+check_process xdg-desktop-portal
+check_process xdg-desktop-portal-hyprland
+check_process xdg-desktop-portal-gtk
+
+printf '\nSystemd user units\n'
+check_unit xdg-desktop-portal.service
+check_unit xdg-desktop-portal-hyprland.service
+check_unit xdg-desktop-portal-gtk.service
+
+printf '\nOther installed portals\n'
+print_extra_portals
+
+printf '\nSummary\n'
+if ((status == 0)); then
+  ok 'default, hyprland, and gtk portals are running'
+else
+  fail 'one or more expected portals are not running'
+fi
+
+exit "$status"

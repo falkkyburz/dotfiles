@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BAT_PATH="${1:-}"
+
+if ! command -v upower >/dev/null 2>&1; then
+  echo "error: upower not found" >&2
+  exit 1
+fi
+
+if [[ -z "$BAT_PATH" ]]; then
+  BAT_PATH="$(upower -e | grep -m1 '/battery_')"
+fi
+
+if [[ -z "$BAT_PATH" ]]; then
+  echo "error: no UPower battery device found" >&2
+  exit 1
+fi
+
+raw="$(upower -i "$BAT_PATH")"
+
+get_field() {
+  local key="$1"
+  awk -F': *' -v key="$key" '
+    $1 ~ "^[[:space:]]*" key "$" {
+      print $2
+      exit
+    }
+  ' <<< "$raw"
+}
+
+num_value() {
+  grep -oE '[0-9]+([.][0-9]+)?' <<< "${1:-}" | head -n1 || true
+}
+
+percentage="$(get_field percentage)"
+capacity="$(get_field capacity)"
+energy_full="$(get_field energy-full)"
+energy_full_design="$(get_field energy-full-design)"
+energy="$(get_field energy)"
+energy_rate="$(get_field energy-rate)"
+state="$(get_field state)"
+
+soc="$(num_value "$percentage")"
+energy_num="$(num_value "$energy")"
+energy_rate_num="$(num_value "$energy_rate")"
+energy_full_num="$(num_value "$energy_full")"
+energy_full_design_num="$(num_value "$energy_full_design")"
+
+health="unknown"
+if [[ -n "$energy_full_num" && -n "$energy_full_design_num" ]]; then
+  health="$(
+    awk -v full="$energy_full_num" -v design="$energy_full_design_num" '
+      BEGIN {
+        if (design > 0) printf "%.1f%%", full / design * 100
+        else print "unknown"
+      }
+    '
+  )"
+elif [[ -n "$capacity" ]]; then
+  health="$capacity"
+fi
+
+time_remaining="unknown"
+if [[ -n "$energy_num" && -n "$energy_rate_num" ]]; then
+  time_remaining="$(
+    awk -v energy="$energy_num" -v rate="$energy_rate_num" -v state="$state" '
+      BEGIN {
+        if (rate <= 0) {
+          print "unknown"
+          exit
+        }
+
+        hours = energy / rate
+
+        h = int(hours)
+        m = int((hours - h) * 60 + 0.5)
+
+        if (m == 60) {
+          h += 1
+          m = 0
+        }
+
+        if (state == "discharging")
+          printf "%dh %02dm remaining", h, m
+        else if (state == "charging")
+          printf "%dh %02dm to full/empty estimate", h, m
+        else
+          printf "%dh %02dm estimate", h, m
+      }
+    '
+  )"
+fi
+
+echo "Battery diagnostics"
+echo "==================="
+echo "Device:             $BAT_PATH"
+echo "SOC:                ${percentage:-unknown}"
+echo "SOC numeric:        ${soc:-unknown}%"
+echo "Health:             $health"
+echo "Time estimate:      $time_remaining"
+echo
+
+echo "Raw UPower info"
+echo "==============="
+printf '%s\n' "$raw"

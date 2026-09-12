@@ -1,0 +1,540 @@
+min_version = "2026.9.2"
+
+[dotfiles]
+"~/.config" = { source = "home/.config", mode = "symlink-each" }
+"~/.local/bin" = { source = "home/.local/bin", mode = "symlink-each" }
+"~/.local/share" = { source = "home/.local/share", mode = "symlink-each", exclude = ["windows-docker"] }
+"~/.local/share/windows-docker/compose.yml" = { source = "home/.local/share/windows-docker/compose.yml", mode = "copy" }
+"~/.zshrc" = { source = "home/.zshrc", mode = "symlink" }
+"~/.npmrc" = { source = "home/.npmrc", mode = "symlink" }
+
+[bootstrap.packages]
+"pacman:git" = "latest"
+"pacman:base-devel" = "latest"
+"pacman:kitty" = "latest"
+"pacman:bat" = "latest"
+"pacman:btop" = "latest"
+"pacman:zsh" = "latest"
+"pacman:less" = "latest"
+"pacman:jq" = "latest"
+"pacman:github-cli" = "latest"
+"pacman:age" = "latest"
+"pacman:man-db" = "latest"
+"pacman:man-pages" = "latest"
+"pacman:tree" = "latest"
+"pacman:lynx" = "latest"
+"pacman:sudo" = "latest"
+"pacman:nodejs" = "latest"
+"pacman:npm" = "latest"
+"pacman:fd" = "latest"
+"pacman:lazygit" = "latest"
+"pacman:fzf" = "latest"
+"pacman:wget" = "latest"
+"pacman:uv" = "latest"
+"pacman:cpio" = "latest"
+"pacman:usbutils" = "latest"
+"pacman:zsh-autosuggestions" = "latest"
+"pacman:unzip" = "latest"
+"pacman:tree-sitter-cli" = "latest"
+"pacman:moreutils" = "latest"
+"pacman:ranger" = "latest"
+"pacman:kwallet" = "latest"
+"pacman:kwallet-pam" = "latest"
+"pacman:kwalletmanager" = "latest"
+"pacman:blueman" = "latest"
+"pacman:bluez" = "latest"
+"pacman:bluez-utils" = "latest"
+"pacman:xdg-desktop-portal" = "latest"
+"pacman:xdg-desktop-portal-gtk" = "latest"
+"pacman:xdg-user-dirs" = "latest"
+"pacman:brightnessctl" = "latest"
+"pacman:swaync" = "latest"
+"pacman:libnotify" = "latest"
+"pacman:swayosd" = "latest"
+"pacman:power-profiles-daemon" = "latest"
+"pacman:playerctl" = "latest"
+"pacman:keyd" = "latest"
+"pacman:qt5-wayland" = "latest"
+"pacman:qt6-wayland" = "latest"
+"pacman:librsvg" = "latest"
+"pacman:papirus-icon-theme" = "latest"
+"pacman:wlr-protocols" = "latest"
+"pacman:slurp" = "latest"
+"pacman:grim" = "latest"
+"pacman:thunar" = "latest"
+"pacman:udiskie" = "latest"
+"pacman:btrfs-assistant" = "latest"
+"pacman:samba" = "latest"
+"pacman:gvfs-smb" = "latest"
+"pacman:wl-clipboard" = "latest"
+"pacman:cliphist" = "latest"
+"pacman:ttf-noto-nerd" = "latest"
+"pacman:noto-fonts" = "latest"
+"pacman:noto-fonts-cjk" = "latest"
+"pacman:noto-fonts-emoji" = "latest"
+"pacman:cantarell-fonts" = "latest"
+"pacman:nwg-look" = "latest"
+"pacman:font-manager" = "latest"
+"pacman:firefox" = "latest"
+"pacman:chromium" = "latest"
+"pacman:libfido2" = "latest"
+"pacman:speech-dispatcher" = "latest"
+"pacman:alsa-utils" = "latest"
+"pacman:pipewire" = "latest"
+"pacman:wireplumber" = "latest"
+"pacman:pipewire-alsa" = "latest"
+"pacman:pipewire-pulse" = "latest"
+"pacman:sof-firmware" = "latest"
+"pacman:vlc" = "latest"
+"pacman:vlc-plugins-all" = "latest"
+"pacman:audacity" = "latest"
+"pacman:intel-media-driver" = "latest"
+"pacman:libva-utils" = "latest"
+"pacman:libreoffice-fresh" = "latest"
+"pacman:octave" = "latest"
+"pacman:inkscape" = "latest"
+"pacman:gimp" = "latest"
+"pacman:fastfetch" = "latest"
+"pacman:obs-studio" = "latest"
+"pacman:zathura" = "latest"
+"pacman:zathura-pdf-poppler" = "latest"
+"pacman:okular" = "latest"
+"pacman:reflector" = "latest"
+"pacman:freecad" = "latest"
+"pacman:kicad" = "latest"
+"pacman:lolcat" = "latest"
+"pacman:figlet" = "latest"
+"pacman:duf" = "latest"
+"pacman:dust" = "latest"
+"pacman:ripgrep" = "latest"
+"pacman:perl-image-exiftool" = "latest"
+"pacman:rsync" = "latest"
+"pacman:bandwhich" = "latest"
+"pacman:pkgstats" = "latest"
+"pacman:sysstat" = "latest"
+"pacman:gnome-clocks" = "latest"
+"pacman:impression" = "latest"
+"pacman:gnome-disk-utility" = "latest"
+"pacman:systemdgenie" = "latest"
+"pacman:gwenview" = "latest"
+"pacman:kdenlive" = "latest"
+"pacman:ark" = "latest"
+"pacman:gdb" = "latest"
+"pacman:code" = "latest"
+"pacman:stlink" = "latest"
+"pacman:pulseview" = "latest"
+"pacman:libsigrok" = "latest"
+"pacman:sigrok-firmware-fx2lafw" = "latest"
+"pacman:sigrok-cli" = "latest"
+"pacman:wireshark-qt" = "latest"
+"pacman:hugo" = "latest"
+"pacman:sqlite" = "latest"
+"pacman:postgresql" = "latest"
+"pacman:qalculate-gtk" = "latest"
+"pacman:libqalculate" = "latest"
+"pacman:gnuplot" = "latest"
+"pacman:cloc" = "latest"
+"pacman:shellcheck" = "latest"
+"pacman:socat" = "latest"
+"pacman:cmake" = "latest"
+"pacman:ninja" = "latest"
+"pacman:gperf" = "latest"
+"pacman:ccache" = "latest"
+"pacman:dfu-util" = "latest"
+"pacman:dtc" = "latest"
+"pacman:python-virtualenv" = "latest"
+"pacman:tk" = "latest"
+"pacman:xz" = "latest"
+"pacman:file" = "latest"
+"pacman:sdl2-compat" = "latest"
+"pacman:networkmanager" = "latest"
+"pacman:network-manager-applet" = "latest"
+"pacman:nm-connection-editor" = "latest"
+"pacman:iwd" = "latest"
+"pacman:impala" = "latest"
+"pacman:docker" = "latest"
+"pacman:docker-compose" = "latest"
+"pacman:docker-buildx" = "latest"
+"pacman:lazydocker" = "latest"
+"pacman:qemu-desktop" = "latest"
+"pacman:libvirt" = "latest"
+"pacman:dnsmasq" = "latest"
+"pacman:virt-viewer" = "latest"
+"pacman:nftables" = "latest"
+"pacman:mise" = "latest"
+"pacman:curl" = "latest"
+"pacman:libcap" = "latest"
+"pacman:wtype" = "latest"
+"pacman:wf-recorder" = "latest"
+"pacman:upower" = "latest"
+"pacman:meson" = "latest"
+"pacman:pkgconf" = "latest"
+"aur:helium-browser-bin" = "latest"
+"aur:localsend" = "latest"
+"pacman:satty" = "latest"
+"aur:can-utils-git" = "latest"
+"aur:xdg-terminal-exec" = "latest"
+"aur:unixcw" = "latest"
+"aur:neovim-git" = "latest"
+"aur:nordvpn-bin" = "latest"
+"aur:ttf-noto-emoji-monochrome" = "latest"
+"aur:wvkbd-git" = "latest"
+"aur:voxtype-bin" = "latest"
+"aur:sunshine-bin" = "latest"
+
+# Hypr ecosystem packages are maintained through AUR.
+"aur:aquamarine-git" = "latest"
+"aur:hyprcursor-git" = "latest"
+"aur:hyprgraphics-git" = "latest"
+"aur:hypridle-git" = "latest"
+"aur:hyprland-git" = "latest"
+"aur:hyprland-guiutils-git" = "latest"
+"aur:hyprland-meta-git" = "latest"
+"aur:hyprland-protocols-git" = "latest"
+"aur:hyprland-qt-support-git" = "latest"
+"aur:hyprlang-git" = "latest"
+"aur:hyprlauncher-git" = "latest"
+"aur:hyprlock-git" = "latest"
+"aur:hyprpaper-git" = "latest"
+"aur:hyprpicker-git" = "latest"
+"aur:hyprpolkitagent-git" = "latest"
+"aur:hyprpwcenter-git" = "latest"
+"aur:hyprqt6engine-git" = "latest"
+"aur:hyprshutdown-git" = "latest"
+"aur:hyprsunset-git" = "latest"
+"aur:hyprsysteminfo-git" = "latest"
+"aur:hyprtoolkit-git" = "latest"
+"aur:hyprutils-git" = "latest"
+"aur:hyprwayland-scanner-git" = "latest"
+"aur:hyprwire-git" = "latest"
+"aur:udis86-git" = "latest"
+"aur:xdg-desktop-portal-hyprland-git" = "latest"
+
+[bootstrap.hooks.pre-packages]
+run = "bash scripts/prerequisites.sh"
+
+[tasks.bootstrap]
+description = "Complete system configuration after mise bootstrap installs packages and dotfiles"
+run = ["bash scripts/configure.sh", "bash scripts/user-services.sh", "bash home/.local/bin/install-minibar-gpu"]
+
+[tasks.apply]
+description = "Apply dotfile symlinks without provisioning the system"
+run = ["bash scripts/check-session.sh", "mise bootstrap dotfiles apply"]
+
+[tasks.check]
+description = "Validate shell scripts and isolated dotfile deployment"
+run = "bash tests/bootstrap.sh"
+
+# Groups are created before package installation. Membership is assigned
+# to the invoking user by configure.sh (mise requires literal account names).
+
+[bootstrap.groups.docker]
+system = true
+
+[bootstrap.groups.libvirt]
+system = true
+
+[bootstrap.groups.nordvpn]
+system = true
+
+[bootstrap.groups.wireshark]
+system = true
+
+[bootstrap.groups.uucp]
+system = true
+
+[bootstrap.user]
+login_shell = "/usr/bin/zsh"
+
+[bootstrap.repos]
+"~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
+"~/dev/dotfiles-utils" = { url = "https://github.com/falkkyburz/dotfiles-utils.git" }
+"~/dev/hyprscreenpicker" = { url = "https://github.com/falkkyburz/hyprscreenpicker.git" }
+
+[bootstrap.files."/etc/udev/rules.d/99-serial.rules"]
+source = "system/etc/udev/rules.d/99-serial.rules"
+owner = "root"
+group = "root"
+mode = "0644"
+
+[bootstrap.files."/etc/modules-load.d/can.conf"]
+source = "system/etc/modules-load.d/can.conf"
+owner = "root"
+group = "root"
+mode = "0644"
+
+[bootstrap.files."/etc/systemd/system/vcan-interfaces.service"]
+source = "system/etc/systemd/system/vcan-interfaces.service"
+owner = "root"
+group = "root"
+mode = "0644"
+notify = ["vcan-interfaces"]
+
+[bootstrap.files."/etc/udev/rules.d/99-candlelight.rules"]
+source = "system/etc/udev/rules.d/99-candlelight.rules"
+owner = "root"
+group = "root"
+mode = "0644"
+
+[bootstrap.files."/etc/udev/rules.d/99-usb-sound.rules"]
+source = "system/etc/udev/rules.d/99-usb-sound.rules"
+owner = "root"
+group = "root"
+mode = "0644"
+template = true
+
+[bootstrap.files."/etc/udev/rules.d/99-ross-tech-hexv2.rules"]
+source = "system/etc/udev/rules.d/99-ross-tech-hexv2.rules"
+owner = "root"
+group = "root"
+mode = "0644"
+
+[bootstrap.files."/etc/NetworkManager/conf.d/wifi_backend.conf"]
+source = "system/etc/NetworkManager/conf.d/wifi_backend.conf"
+owner = "root"
+group = "root"
+mode = "0644"
+notify = ["NetworkManager"]
+
+[bootstrap.files."/etc/iwd/main.conf"]
+source = "system/etc/iwd/main.conf"
+owner = "root"
+group = "root"
+mode = "0644"
+notify = ["iwd"]
+
+[bootstrap.files."/etc/keyd/default.conf"]
+source = "system/etc/keyd/default.conf"
+owner = "root"
+group = "root"
+mode = "0644"
+notify = ["keyd"]
+
+[bootstrap.files."/etc/pam.d/login"]
+source = "system/etc/pam.d/login"
+owner = "root"
+group = "root"
+mode = "0644"
+
+[bootstrap.files."/etc/fonts/conf.d/70-no-bitmaps.conf"]
+source = "/usr/share/fontconfig/conf.avail/70-no-bitmaps.conf"
+owner = "root"
+group = "root"
+mode = "0644"
+replace = true
+
+[bootstrap.files."/etc/fonts/conf.d/10-scale-bitmap-fonts.conf"]
+state = "absent"
+
+[bootstrap.services.nftables]
+state = "stopped"
+enabled = false
+
+[bootstrap.services.bluetooth]
+state = "running"
+enabled = true
+
+[bootstrap.services.docker]
+state = "running"
+enabled = true
+
+[bootstrap.services.libvirtd]
+state = "running"
+enabled = true
+
+[bootstrap.services.nordvpnd]
+state = "running"
+enabled = true
+
+[bootstrap.services.keyd]
+state = "running"
+enabled = true
+
+[bootstrap.services.NetworkManager]
+state = "running"
+enabled = true
+
+[bootstrap.services.iwd]
+state = "running"
+enabled = true
+
+[bootstrap.services.vcan-interfaces]
+state = "running"
+enabled = true
+
+# The native nftables backend owns only inet mise_bootstrap.
+[bootstrap.linux.firewall]
+backend = "nftables"
+state = "enabled"
+default_incoming = "deny"
+default_outgoing = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "ssh"
+protocol = "tcp"
+port = 22
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-tcp-47984"
+protocol = "tcp"
+port = 47984
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-tcp-47989"
+protocol = "tcp"
+port = 47989
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-tcp-48010"
+protocol = "tcp"
+port = 48010
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-udp-47998-48000"
+protocol = "udp"
+port = "47998-48000"
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-udp-48002"
+protocol = "udp"
+port = 48002
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-0-udp-48010"
+protocol = "udp"
+port = 48010
+source = "10.0.0.0/8"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-tcp-47984"
+protocol = "tcp"
+port = 47984
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-tcp-47989"
+protocol = "tcp"
+port = 47989
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-tcp-48010"
+protocol = "tcp"
+port = 48010
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-udp-47998-48000"
+protocol = "udp"
+port = "47998-48000"
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-udp-48002"
+protocol = "udp"
+port = 48002
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-1-udp-48010"
+protocol = "udp"
+port = 48010
+source = "172.16.0.0/12"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-tcp-47984"
+protocol = "tcp"
+port = 47984
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-tcp-47989"
+protocol = "tcp"
+port = 47989
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-tcp-48010"
+protocol = "tcp"
+port = 48010
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-udp-47998-48000"
+protocol = "udp"
+port = "47998-48000"
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-udp-48002"
+protocol = "udp"
+port = 48002
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "sunshine-2-udp-48010"
+protocol = "udp"
+port = 48010
+source = "192.168.0.0/16"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "libvirt-tcp-53"
+interface = "virbr0"
+protocol = "tcp"
+port = 53
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "libvirt-udp-53"
+interface = "virbr0"
+protocol = "udp"
+port = 53
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "libvirt-udp-67"
+interface = "virbr0"
+protocol = "udp"
+port = 67
+action = "allow"
+
+[tasks."repos:hypr"]
+description = "Clone optional Hypr development repositories using mise"
+run = "mise -E hypr-dev bootstrap repos apply"
+
+[tasks."repos:personal"]
+description = "Clone personal development repositories using mise"
+run = "mise -E personal bootstrap repos apply"
+
+[tasks."build:hyprscreenpicker"]
+description = "Build the custom picker against the installed Hypr libraries"
+run = [
+  'mise bootstrap repos apply --skip-dirty',
+  'cmake -S "$HOME/dev/hyprscreenpicker" -B "$HOME/dev/hyprscreenpicker/build/release" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"',
+  'cmake --build "$HOME/dev/hyprscreenpicker/build/release" --parallel',
+  'cmake --install "$HOME/dev/hyprscreenpicker/build/release"',
+]

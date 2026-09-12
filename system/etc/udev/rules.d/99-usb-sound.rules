@@ -1,0 +1,1 @@
+SUBSYSTEM=="usb", ACTION=="add", ENV{DEVTYPE}=="usb_device", RUN+="{{ env.HOME }}/.local/bin/usb_notify.sh {{ env.HOME }}/.local/share/sound/ding.wav"

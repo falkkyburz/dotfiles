@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ok() {
+  printf '[ok] %s\n' "$1"
+}
+
+warn() {
+  printf '[warn] %s\n' "$1"
+}
+
+fail() {
+  printf '[fail] %s\n' "$1"
+}
+
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+print_section() {
+  printf '\n%s\n' "$1"
+}
+
+check_binary() {
+  local name="$1"
+
+  if have "$name"; then
+    ok "found $name at $(command -v "$name")"
+  else
+    warn "missing $name"
+  fi
+}
+
+print_resolv_conf() {
+  if [[ ! -e /etc/resolv.conf ]]; then
+    fail '/etc/resolv.conf does not exist'
+    return
+  fi
+
+  if [[ -L /etc/resolv.conf ]]; then
+    printf 'symlink: /etc/resolv.conf -> %s\n' "$(readlink /etc/resolv.conf)"
+  else
+    printf 'file: /etc/resolv.conf\n'
+  fi
+
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    /^(nameserver|search|options)/ { print "  " $0 }
+  ' /etc/resolv.conf
+}
+
+print_resolved_status() {
+  if ! have resolvectl; then
+    warn 'cannot inspect systemd-resolved without resolvectl'
+    return
+  fi
+
+  resolvectl status 2>/dev/null || warn 'resolvectl status failed'
+}
+
+print_nm_dns() {
+  if ! have nmcli; then
+    warn 'cannot inspect NetworkManager DNS without nmcli'
+    return
+  fi
+
+  nmcli -f GENERAL.DEVICE,GENERAL.TYPE,GENERAL.STATE,GENERAL.CONNECTION,IP4.DNS,IP6.DNS device show 2>/dev/null |
+    awk '
+      /^GENERAL.DEVICE:/ { device=$0; sub(/^GENERAL.DEVICE:[[:space:]]*/, "", device) }
+      /^GENERAL.TYPE:/ { type=$0; sub(/^GENERAL.TYPE:[[:space:]]*/, "", type) }
+      /^GENERAL.STATE:/ { state=$0; sub(/^GENERAL.STATE:[[:space:]]*/, "", state) }
+      /^GENERAL.CONNECTION:/ { conn=$0; sub(/^GENERAL.CONNECTION:[[:space:]]*/, "", conn) }
+      /^IP[46]\.DNS/ {
+        if (!printed) {
+          printf "%s (%s, %s, %s)\n", device, type, state, conn
+          printed=1
+        }
+        print "  " $0
+      }
+      /^$/ { printed=0 }
+    '
+}
+
+print_vpn_status() {
+  local nm_vpn vpn_links default_link dns_links vpn_active=0 dns_on_vpn=0
+
+  if have nmcli; then
+    nm_vpn="$(nmcli -t -f NAME,TYPE,DEVICE connection show --active 2>/dev/null | awk -F: '$2 ~ /vpn|wireguard/ { print }')"
+    if [[ -n "$nm_vpn" ]]; then
+      vpn_active=1
+      printf 'Active NetworkManager VPN connections:\n'
+      awk -F: '{ printf "  %s (%s on %s)\n", $1, $2, $3 }' <<<"$nm_vpn"
+    fi
+  fi
+
+  if have resolvectl; then
+    vpn_links="$(resolvectl status 2>/dev/null | awk '
+      /^Link [0-9]+ \((tun|tap|wg|nordlynx|tailscale|zt|ppp)/ { print }
+    ' || true)"
+    if [[ -n "$vpn_links" ]]; then
+      vpn_active=1
+      printf 'VPN-like resolver links:\n%s\n' "$vpn_links"
+    fi
+
+    default_link="$(resolvectl status 2>/dev/null | awk '
+      /^Link [0-9]+ / { link=$0 }
+      /DefaultRoute setting: yes/ { print link; exit }
+    ' || true)"
+    dns_links="$(resolvectl dns 2>/dev/null | awk -F: '/^Link / && $2 != "" { print $1 }' || true)"
+
+    if rg -q 'tun|tap|wg|nordlynx|tailscale|zt|ppp' <<<"$default_link$dns_links"; then
+      dns_on_vpn=1
+    fi
+
+    if [[ -n "$default_link" ]]; then
+      printf 'Default-route DNS link candidate:\n  %s\n' "$default_link"
+    else
+      warn 'could not identify a default-route DNS link from systemd-resolved'
+    fi
+  fi
+
+  if ((vpn_active == 0)); then
+    ok 'no active VPN connection detected'
+    return
+  fi
+
+  if ((dns_on_vpn)); then
+    ok 'DNS appears to be using a VPN-like link'
+  else
+    warn 'VPN is active, but DNS does not clearly appear to use a VPN link'
+    warn 'this can be normal for split DNS, but it may also indicate DNS leakage'
+  fi
+}
+
+test_dns_resolution() {
+  local host="${1:-archlinux.org}"
+
+  if have resolvectl; then
+    if resolvectl query "$host" >/dev/null 2>&1; then
+      ok "resolved $host with system resolver"
+      return
+    else
+      warn "failed to resolve $host with resolvectl"
+    fi
+  fi
+
+  if have getent; then
+    if getent ahosts "$host" >/dev/null 2>&1; then
+      ok "resolved $host with libc resolver"
+    else
+      fail "failed to resolve $host with libc resolver"
+    fi
+  else
+    warn 'cannot test DNS resolution without resolvectl or getent'
+  fi
+}
+
+print_default_route_dns() {
+  if ! have resolvectl; then
+    awk '/^nameserver[[:space:]]+/ { print "[ok] resolv.conf nameserver: " $2; found=1 } END { if (!found) print "[warn] no nameserver found in /etc/resolv.conf" }' /etc/resolv.conf
+    return
+  fi
+
+  local dns_server dns_interface
+  dns_server="$(resolvectl dns 2>/dev/null | awk -F': ' '/^Global:/ { next } /^[^[:space:]].*:/ && $2 != "" { print $2; exit }' || true)"
+  dns_interface="$(resolvectl dns 2>/dev/null | awk -F': ' '/^Link / && $2 != "" { print $1; exit }' || true)"
+
+  if [[ -n "$dns_server" ]]; then
+    ok "active link DNS candidate: ${dns_interface:-unknown link}: $dns_server"
+  else
+    warn 'could not determine an active DNS server from resolvectl'
+    awk '/^nameserver[[:space:]]+/ { print "[ok] resolv.conf nameserver: " $2; found=1 } END { if (!found) print "[warn] no nameserver found in /etc/resolv.conf" }' /etc/resolv.conf
+  fi
+}
+
+print_encryption_status() {
+  local status resolved_conf nm_cloudflare=0 nm_quad9=0 nm_google=0
+
+  if have resolvectl && status="$(resolvectl status 2>/dev/null)"; then
+    if rg -q 'DNSOverTLS=.*yes|DNSOverTLS=yes|DNS over TLS: yes|DNSOverTLS setting: yes' <<<"$status"; then
+      ok 'systemd-resolved reports DNS-over-TLS enabled'
+    elif rg -q 'DNSOverTLS=.*opportunistic|DNSOverTLS=opportunistic|DNS over TLS: opportunistic|DNSOverTLS setting: opportunistic' <<<"$status"; then
+      warn 'systemd-resolved reports opportunistic DNS-over-TLS'
+    else
+      warn 'system resolver does not report encrypted DNS-over-TLS'
+    fi
+  else
+    warn 'cannot determine systemd-resolved encrypted DNS status'
+  fi
+
+  resolved_conf="$(awk 'BEGIN { found=0 } /^[[:space:]]*DNSOverTLS=/ { print; found=1 } END { if (!found) exit 1 }' /etc/systemd/resolved.conf /etc/systemd/resolved.conf.d/*.conf 2>/dev/null || true)"
+  if [[ -n "$resolved_conf" ]]; then
+    printf 'configured DNSOverTLS lines:\n%s\n' "$resolved_conf"
+  fi
+
+  if have nmcli; then
+    local dns_values
+    dns_values="$(nmcli -g IP4.DNS,IP6.DNS device show 2>/dev/null || true)"
+    rg -q '(^|[[:space:]])1\.1\.1\.1|1\.0\.0\.1|2606:4700:4700::1111|2606:4700:4700::1001' <<<"$dns_values" && nm_cloudflare=1
+    rg -q '(^|[[:space:]])9\.9\.9\.9|149\.112\.112\.112|2620:fe::fe|2620:fe::9' <<<"$dns_values" && nm_quad9=1
+    rg -q '(^|[[:space:]])8\.8\.8\.8|8\.8\.4\.4|2001:4860:4860::8888|2001:4860:4860::8844' <<<"$dns_values" && nm_google=1
+  fi
+
+  printf '\nDNS-over-HTTPS check\n'
+  warn 'Linux system DNS normally uses plaintext UDP/TCP or DNS-over-TLS via systemd-resolved; systemd-resolved does not provide DNS-over-HTTPS.'
+  if ((nm_cloudflare || nm_quad9 || nm_google)); then
+    warn 'using a public resolver that supports DoH does not mean this system DNS path is using DoH'
+  fi
+  printf 'To verify browser DoH, check the browser settings separately; Firefox/Chromium can bypass system DNS.\n'
+}
+
+print_firefox_doh_hint() {
+  local profile prefs mode uri found=0
+
+  shopt -s nullglob
+  for prefs in "$HOME"/.mozilla/firefox/*.default*/prefs.js "$HOME"/.mozilla/firefox/*.default-release/prefs.js; do
+    [[ -f "$prefs" ]] || continue
+    profile="${prefs%/prefs.js}"
+    mode="$(awk -F, '/network.trr.mode/ { gsub(/[^0-9]/, "", $2); print $2; exit }' "$prefs")"
+    uri="$(awk -F'"' '/network.trr.uri/ { print $4; exit }' "$prefs")"
+    [[ -n "$mode$uri" ]] || continue
+    found=1
+    printf 'Firefox profile %s\n' "${profile##*/}"
+    printf '  network.trr.mode: %s\n' "${mode:-unset}"
+    printf '  network.trr.uri: %s\n' "${uri:-unset}"
+  done
+  shopt -u nullglob
+
+  if ((found == 0)); then
+    ok 'no Firefox DoH prefs found in local profiles'
+  fi
+}
+
+printf 'DNS doctor\n'
+
+print_section 'Binaries'
+check_binary resolvectl
+check_binary nmcli
+check_binary rg
+
+print_section 'Resolver file'
+print_resolv_conf
+
+print_section 'Active DNS candidate'
+print_default_route_dns
+
+print_section 'NetworkManager DNS'
+print_nm_dns
+
+print_section 'VPN DNS'
+print_vpn_status
+
+print_section 'Resolution test'
+test_dns_resolution "${1:-archlinux.org}"
+
+print_section 'systemd-resolved status'
+print_resolved_status
+
+print_section 'Encrypted DNS'
+print_encryption_status
+
+print_section 'Browser DoH hints'
+print_firefox_doh_hint
