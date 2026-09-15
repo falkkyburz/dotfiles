@@ -225,6 +225,10 @@ run = ["bash scripts/check-session.sh", "mise bootstrap dotfiles apply"]
 description = "Validate shell scripts and isolated dotfile deployment"
 run = "bash tests/bootstrap.sh"
 
+[tasks.update-all]
+description = 'Run full system update'
+run = "yay -Syu --devel --answerclean A --answerdiff N --answeredit N"
+
 # Groups are created before package installation. Membership is assigned
 # to the invoking user by configure.sh (mise requires literal account names).
 

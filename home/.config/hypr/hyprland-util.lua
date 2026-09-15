@@ -60,4 +60,13 @@ function M.zoom_toggle()
     local current = hl.get_config("cursor.zoom_factor")
     hl.config({cursor = {zoom_factor = current == 1 and 3 or 1}})
 end
+
+function M.type_umlaut(vowel, uppercase)
+    return function()
+        hl.dispatch(hl.dsp.send_shortcut({ mods = '', key = 'code:108' }))
+        hl.dispatch(hl.dsp.send_shortcut({ mods = 'SHIFT', key = 'Apostrophe' }))
+        hl.dispatch(hl.dsp.send_shortcut({ mods = uppercase and 'SHIFT' or '', key = vowel }))
+    end
+end
+
 return M

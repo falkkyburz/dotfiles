@@ -297,7 +297,7 @@ hl.device({
 
 hl.bind(mainMod .. ' + Return',    hl.dsp.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"'), { description = 'Open terminal' })
 hl.bind(mainMod .. ' + SHIFT + Return', hl.dsp.exec_cmd('kitty --directory "$(~/.local/bin/terminal-cwd.sh)"', { float = true, center = true, size = {"(monitor_w*0.75)", "(monitor_h*0.75)"}, stay_focused = true }), { description = 'Open terminal' })
-hl.bind(mainMod .. ' + X',         hl.dsp.window.close(),                                                  { description = 'Close active window' })
+hl.bind(mainMod .. ' + Q',         hl.dsp.window.close(),                                                  { description = 'Close active window' })
 hl.bind(
     mainMod .. ' + M',
     hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"),
@@ -381,6 +381,8 @@ hl.bind(mainMod .. ' + mouse_down',hl.dsp.focus({ workspace = 'e+1' }), { descri
 hl.bind(mainMod .. ' + mouse_up',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
 hl.bind('mouse_right', hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
 hl.bind('mouse_left',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
+hl.bind(mainMod .. ' + mouse_right', hl.dsp.window.move({ workspace = 'r+1' }), { description = 'Move to next workspace' })
+hl.bind(mainMod .. ' + mouse_left',  hl.dsp.window.move({ workspace = 'r-1' }), { description = 'Moce to previous workspace' })
 
 hl.bind(mainMod .. ' + mouse:272', hl.dsp.window.drag(),   { mouse = true, description = 'Move with mouse' })
 hl.bind(mainMod .. ' + mouse:273', hl.dsp.window.resize(), { mouse = true, description = 'Resize with mouse' })
@@ -406,7 +408,23 @@ hl.bind(mainMod .. ' + Z', hl.dsp.exec_cmd('voxtype record stop'), { release = t
 hl.bind(mainMod .. ' + Period', hl.dsp.exec_cmd('kitty --class kitty_nvim --hold nvim'), { description = 'Open file Neovim' })
 
 --hl.bind(mainMod .. ' + Tab', util.overview_toggle)
-hl.bind(mainMod .. ' + Q', util.zoom_toggle)
+hl.bind(mainMod .. ' + SHIFT + Q', util.zoom_toggle)
+
+-- }}}
+
+-- {{{ submaps
+
+hl.bind(mainMod .. ' + U', hl.dsp.submap('umlaut'), { description = 'Enter umlaut submap' })
+
+hl.define_submap('umlaut', function()
+    hl.bind('BracketLeft', util.type_umlaut('U', false))
+    hl.bind('Semicolon',   util.type_umlaut('O', false))
+    hl.bind('Apostrophe',  util.type_umlaut('A', false))
+    hl.bind('SHIFT + BracketLeft', util.type_umlaut('U', true))
+    hl.bind('SHIFT + Semicolon',   util.type_umlaut('O', true))
+    hl.bind('SHIFT + Apostrophe',  util.type_umlaut('A', true))
+    hl.bind('Escape',   hl.dsp.submap('reset'))
+end)
 
 -- }}}
 
@@ -529,13 +547,6 @@ hl.window_rule({
 -- }}}
 
 -- {{{ plugins
-
--- Local Hyprgrass build with logging API compatibility for this Hyprland revision.
--- Remove this loader once the hyprpm build succeeds.
-local hyprgrass_path = os.getenv('HOME') .. '/.local/lib/hyprgrass/hyprgrass.so'
-if util.file_exists(hyprgrass_path) then
-    hl.plugin.load(hyprgrass_path)
-end
 
 if hl.plugin.hyprgrass ~= nil then
     hl.config({

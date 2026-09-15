@@ -43,7 +43,7 @@ return {
     },
     filesystem = {
       follow_current_file = { enabled = true },
-      bind_to_cwd = false,
+      bind_to_cwd = true,
       window = {
         mappings = {
           ['h'] = 'close_node',
