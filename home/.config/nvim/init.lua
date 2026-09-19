@@ -265,6 +265,60 @@ local function set_gruvbox(background)
 	vim.cmd.colorscheme("gruvbox")
 end
 
+local function sync_gruvbox()
+	set_gruvbox("dark")
+	if vim.fn.executable("gsettings") ~= 1 then
+		return
+	end
+
+	local schema = "org.gnome.desktop.interface"
+	local key = "color-scheme"
+	local stopped = false
+	local pending = ""
+	local function apply(value)
+		if stopped then
+			return
+		end
+		local mode = value:match("'([^']+)'")
+		if mode ~= "prefer-light" and mode ~= "prefer-dark" and mode ~= "default" then
+			return
+		end
+		local background = mode == "prefer-light" and "light" or "dark"
+		if vim.o.background ~= background then
+			set_gruvbox(background)
+		end
+	end
+
+	local monitor = vim.fn.jobstart({ "gsettings", "monitor", schema, key }, {
+		on_stdout = function(_, data)
+			if stopped then
+				return
+			end
+			for i, chunk in ipairs(data) do
+				if i > 1 then
+					apply(pending)
+					pending = ""
+				end
+				pending = pending .. chunk
+			end
+		end,
+	})
+	if monitor > 0 then
+		vim.api.nvim_create_autocmd("VimLeavePre", {
+			once = true,
+			callback = function()
+				stopped = true
+				vim.fn.jobstop(monitor)
+			end,
+		})
+	end
+
+	local result = vim.system({ "gsettings", "get", schema, key }, { text = true }):wait(1000)
+	if result.code == 0 then
+		apply(result.stdout or "")
+	end
+end
+
 vim.keymap.set("n", "<leader>tn", function()
 	set_gruvbox("dark")
 end, { desc = "Gruvbox dark" })
@@ -1194,9 +1248,7 @@ require("lazy").setup({
 		"ellisonleao/gruvbox.nvim",
 		priority = 1000,
 		lazy = false,
-		config = function()
-			set_gruvbox("dark")
-		end,
+		config = sync_gruvbox,
 	},
 	-- Highlight todo, notes, etc in comments
 	{
