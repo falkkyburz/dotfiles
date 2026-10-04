@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=T3 Code Nightly Stop
+Comment=Stop the nightly version of T3 Code
+Exec=sh -c "pkill -TERM -f '[n]pm exec t3@nightly|node_modules/.bin/[t]3|@t3code/t3-linux-x64/[t]3' || true"
+Icon=process-stop
+Terminal=false
+Categories=Development;
+Keywords=T3;Code;Nightly;Stop;
