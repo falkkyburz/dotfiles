@@ -24,3 +24,15 @@ application/vnd.ms-powerpoint=libreoffice-impress.desktop;
 application/vnd.oasis.opendocument.text=libreoffice-writer.desktop;
 application/vnd.oasis.opendocument.spreadsheet=libreoffice-calc.desktop;
 application/vnd.oasis.opendocument.presentation=libreoffice-impress.desktop;
+x-scheme-handler/codex=chatgpt.desktop
+x-scheme-handler/t3code=com.t3tools.T3Code.desktop
+x-scheme-handler/rpi-imager=com.raspberrypi.rpi-imager-uri-handler.desktop
+application/octet-stream=org.neovim.nvim.desktop
+
+[Added Associations]
+text/csv=org.neovim.nvim.desktop;libreoffice-calc.desktop;
+text/x-shellscript=org.neovim.nvim.desktop;
+x-scheme-handler/t3code=com.t3tools.T3Code.desktop;
+application/json=dev.zed.Zed-Preview.desktop;
+application/xml=dev.zed.Zed-Preview.desktop;
+application/octet-stream=org.neovim.nvim.desktop;

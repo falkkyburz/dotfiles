@@ -76,8 +76,8 @@ hl.env('HYPRCURSOR_SIZE', '24')
 
 hl.config({
     general = {
-        gaps_in = 5,
-        gaps_out = 10,
+        gaps_in = 0,
+        gaps_out = 0,
         border_size = 2,
         resize_on_border = false,
         allow_tearing = false,
@@ -379,6 +379,8 @@ hl.bind(mainMod .. ' + CTRL + S',  hl.dsp.window.move({ workspace = 'special:mag
 
 hl.bind(mainMod .. ' + mouse_down',hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
 hl.bind(mainMod .. ' + mouse_up',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
+hl.bind(mainMod .. ' + SHIFT + mouse_down', util.focus_right,  { description = 'Move focus rigth' })
+hl.bind(mainMod .. ' + SHIFT + mouse_up',  util.focus_left,  { description = 'Move focus left' })
 hl.bind('mouse_right', hl.dsp.focus({ workspace = 'e+1' }), { description = 'Scroll workspaces' })
 hl.bind('mouse_left',  hl.dsp.focus({ workspace = 'e-1' }), { description = 'Scroll workspaces' })
 hl.bind(mainMod .. ' + mouse_right', hl.dsp.window.move({ workspace = 'r+1' }), { description = 'Move to next workspace' })

@@ -380,66 +380,128 @@ idle_inhibit() {
   printf '󰒳 '
 }
 
-declare -A idle_dbus_owner_counts=()
+# Track accepted cookies, not attempted calls: requests may fail, and a cookie
+# can be released by a different connection than the one that acquired it.
+declare -A idle_dbus_cookies=() idle_dbus_pending=() idle_dbus_release=()
 idle_dbus_count=0
-idle_dbus_name_change_field=0
+idle_dbus_message=''
+idle_dbus_key=''
+idle_dbus_owner=''
+idle_dbus_name_field=0
+idle_dbus_name=''
 idle_dbus_old_owner=''
+idle_dbus_partial=''
 
 handle_idle_dbus_event() {
-  local line="$1" owner value count
+  local line="$1" owner key cookie value
 
-  if [[ "$line" == method\ call*'interface=org.freedesktop.ScreenSaver; member=Inhibit' ]]; then
-    [[ "$line" =~ sender=([^[:space:]]+) ]] || return 0
-    owner="${BASH_REMATCH[1]}"
-    count="${idle_dbus_owner_counts[$owner]:-0}"
-    idle_dbus_owner_counts[$owner]=$((count + 1))
-    idle_dbus_count=$((idle_dbus_count + 1))
-    return 0
-  fi
-
-  if [[ "$line" == method\ call*'interface=org.freedesktop.ScreenSaver; member=UnInhibit' ]]; then
-    [[ "$line" =~ sender=([^[:space:]]+) ]] || return 0
-    owner="${BASH_REMATCH[1]}"
-    count="${idle_dbus_owner_counts[$owner]:-0}"
-    if (( count > 0 )); then
-      idle_dbus_owner_counts[$owner]=$((count - 1))
-      idle_dbus_count=$((idle_dbus_count - 1))
+  if [[ "$line" != ' '* ]]; then
+    idle_dbus_message=''
+    idle_dbus_name_field=0
+    if [[ "$line" == method\ call*'interface=org.freedesktop.ScreenSaver; member='* ]]; then
+      [[ "$line" =~ sender=([^[:space:]]+) ]] || return 0
+      owner="${BASH_REMATCH[1]}"
+      [[ "$line" =~ [[:space:]]serial=([0-9]+) ]] || return 0
+      key="$owner/${BASH_REMATCH[1]}"
+      case "$line" in
+        *'member=Inhibit') idle_dbus_pending[$key]=acquire ;;
+        *'member=UnInhibit')
+          idle_dbus_pending[$key]=release
+          idle_dbus_message=release
+          idle_dbus_key="$key"
+          ;;
+      esac
+    elif [[ "$line" == 'method return '* || "$line" == 'error '* ]]; then
+      [[ "$line" =~ destination=([^[:space:]]+) ]] || return 0
+      owner="${BASH_REMATCH[1]}"
+      [[ "$line" =~ reply_serial=([0-9]+) ]] || return 0
+      key="$owner/${BASH_REMATCH[1]}"
+      if [[ "$line" == 'method return '* ]]; then
+        case "${idle_dbus_pending[$key]:-}" in
+          acquire)
+            idle_dbus_message=acquire
+            idle_dbus_owner="$owner"
+            ;;
+          release)
+            cookie="${idle_dbus_release[$key]:-}"
+            if [[ -n "$cookie" ]]; then
+              unset 'idle_dbus_cookies[$cookie]'
+              idle_dbus_count=${#idle_dbus_cookies[@]}
+            fi
+            ;;
+        esac
+      fi
+      unset 'idle_dbus_pending[$key]' 'idle_dbus_release[$key]'
+    elif [[ "$line" == signal\ *'interface=org.freedesktop.DBus; member=NameOwnerChanged' ]]; then
+      idle_dbus_message=name
+      idle_dbus_name_field=1
     fi
     return 0
   fi
 
-  if [[ "$line" == signal\ *'interface=org.freedesktop.DBus; member=NameOwnerChanged' ]]; then
-    idle_dbus_name_change_field=1
-    idle_dbus_old_owner=''
-    return 0
-  fi
-
-  (( idle_dbus_name_change_field > 0 )) || return 0
-  [[ "$line" == '   string "'*'"' ]] || return 0
-  value="${line#*string \"}"
-  value="${value%\"}"
-  case "$idle_dbus_name_change_field" in
-    1) idle_dbus_name_change_field=2 ;;
-    2)
-      idle_dbus_old_owner="$value"
-      idle_dbus_name_change_field=3
-      ;;
-    3)
-      if [[ -z "$value" && -n "$idle_dbus_old_owner" ]]; then
-        count="${idle_dbus_owner_counts[$idle_dbus_old_owner]:-0}"
-        if (( count > 0 )); then
-          idle_dbus_count=$((idle_dbus_count - count))
-          unset 'idle_dbus_owner_counts[$idle_dbus_old_owner]'
-        fi
+  case "$idle_dbus_message" in
+    acquire|release)
+      [[ "$line" =~ ^[[:space:]]+uint32[[:space:]]+([0-9]+)$ ]] || return 0
+      cookie="${BASH_REMATCH[1]}"
+      if [[ "$idle_dbus_message" == acquire ]]; then
+        idle_dbus_cookies[$cookie]="$idle_dbus_owner"
+        idle_dbus_count=${#idle_dbus_cookies[@]}
+      else
+        idle_dbus_release[$idle_dbus_key]="$cookie"
       fi
-      idle_dbus_name_change_field=0
-      idle_dbus_old_owner=''
+      idle_dbus_message=''
+      ;;
+    name)
+      [[ "$line" == '   string "'*'"' ]] || return 0
+      value="${line#*string \"}"
+      value="${value%\"}"
+      case "$idle_dbus_name_field" in
+        1) idle_dbus_name="$value"; idle_dbus_name_field=2 ;;
+        2) idle_dbus_old_owner="$value"; idle_dbus_name_field=3 ;;
+        3)
+          if [[ "$idle_dbus_name" == org.freedesktop.ScreenSaver ]]; then
+            # Cookies belong to the service instance that issued them.
+            idle_dbus_cookies=()
+            idle_dbus_pending=()
+            idle_dbus_release=()
+          elif [[ "$idle_dbus_name" == :* && -z "$value" ]]; then
+            for cookie in "${!idle_dbus_cookies[@]}"; do
+              if [[ "${idle_dbus_cookies[$cookie]}" == "$idle_dbus_old_owner" ]]; then
+                unset 'idle_dbus_cookies[$cookie]'
+              fi
+            done
+            for key in "${!idle_dbus_pending[@]}"; do
+              if [[ "$key" == "$idle_dbus_old_owner/"* ]]; then
+                unset 'idle_dbus_pending[$key]' 'idle_dbus_release[$key]'
+              fi
+            done
+          fi
+          idle_dbus_count=${#idle_dbus_cookies[@]}
+          idle_dbus_message=''
+          ;;
+      esac
       ;;
   esac
+  return 0
+}
+
+read_idle_dbus_events() {
+  local line i
+  for ((i = 0; i < 40; i++)); do
+    line=''
+    if IFS= read -r -t 0.001 -u "$idle_dbus_fd" line; then
+      handle_idle_dbus_event "$idle_dbus_partial$line"
+      idle_dbus_partial=''
+    else
+      # Bash returns the bytes already consumed when a timed read expires.
+      idle_dbus_partial+="$line"
+      break
+    fi
+  done
 }
 
 start_idle_dbus_monitor() {
-  local match_inhibit match_uninhibit match_disconnect
+  local match_inhibit match_uninhibit match_disconnect match_owner match_reply match_error
 
   command -v dbus-monitor >/dev/null 2>&1 || return 1
   [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] || return 1
@@ -447,13 +509,17 @@ start_idle_dbus_monitor() {
   match_inhibit="type='method_call',interface='org.freedesktop.ScreenSaver',member='Inhibit'"
   match_uninhibit="type='method_call',interface='org.freedesktop.ScreenSaver',member='UnInhibit'"
   match_disconnect="type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg2=''"
+  match_owner="type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='org.freedesktop.ScreenSaver'"
+  match_reply="type='method_return',sender='org.freedesktop.ScreenSaver'"
+  match_error="type='error'"
 
   idle_dbus_fifo="$(mktemp -u "${TMPDIR:-/tmp}/run-minibar-idle-dbus.XXXXXX")"
   mkfifo "$idle_dbus_fifo"
   exec {idle_dbus_fd}<>"$idle_dbus_fifo"
   rm -f "$idle_dbus_fifo"
 
-  dbus-monitor --session "$match_inhibit" "$match_uninhibit" "$match_disconnect" >&$idle_dbus_fd &
+  dbus-monitor --session "$match_inhibit" "$match_uninhibit" "$match_disconnect" \
+    "$match_owner" "$match_reply" "$match_error" >&$idle_dbus_fd &
   idle_dbus_monitor_pid=$!
   return 0
 }
@@ -788,12 +854,9 @@ while true; do
   if (( idle_dbus_events )); then
     if ! kill -0 "$idle_dbus_monitor_pid" 2>/dev/null; then
       idle_dbus_events=0
+      idle_dbus_count=0
     else
-      for _ in {1..40}; do
-        idle_dbus_event=''
-        IFS= read -r -t 0.001 -u "$idle_dbus_fd" idle_dbus_event || break
-        handle_idle_dbus_event "$idle_dbus_event"
-      done
+      read_idle_dbus_events
     fi
   fi
 

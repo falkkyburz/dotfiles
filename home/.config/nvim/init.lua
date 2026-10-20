@@ -43,6 +43,8 @@ vim.o.mouse = "a"
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
+vim.o.showtabline = 0
+vim.o.termguicolors = true
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
@@ -227,7 +229,9 @@ vim.keymap.set("n", "<leader>w", "<cmd>write<cr>", { desc = "Save file" })
 vim.keymap.set("n", "<leader>q", "<cmd>quit<cr>", { desc = "Quit window" })
 vim.keymap.set("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
 vim.keymap.set("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
-vim.keymap.set("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" })
+vim.keymap.set("n", "<leader>bd", function()
+	require("mini.bufremove").delete(0, false)
+end, { desc = "Close file, keep split" })
 
 vim.keymap.set("n", "<leader>-", "<cmd>vertical resize -4<cr>", { desc = "Decrease width" })
 vim.keymap.set("n", "<leader>=", "<cmd>vertical resize +4<cr>", { desc = "Increase width" })
@@ -339,6 +343,31 @@ end, { desc = "[T]oggle [D]iagnostics" })
 
 -- {{{ Autocommands
 --  See `:help lua-guide-autocommands`
+
+-- Retire unused [No Name] placeholders after opening a file. Defer until file
+-- pickers have finished switching windows, and preserve scratch text and splits.
+vim.api.nvim_create_autocmd("BufEnter", {
+	group = vim.api.nvim_create_augroup("retire-empty-buffers", { clear = true }),
+	callback = function(event)
+		if vim.bo[event.buf].buftype ~= "" or vim.api.nvim_buf_get_name(event.buf) == "" then return end
+		vim.schedule(function()
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				if
+					vim.api.nvim_buf_is_loaded(buf)
+					and vim.bo[buf].buflisted
+					and vim.bo[buf].buftype == ""
+					and not vim.bo[buf].modified
+					and vim.api.nvim_buf_get_name(buf) == ""
+					and #vim.fn.win_findbuf(buf) == 0
+					and vim.api.nvim_buf_line_count(buf) == 1
+					and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
+				then
+					vim.api.nvim_buf_delete(buf, {})
+				end
+			end
+		end)
+	end,
+})
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -647,6 +676,7 @@ require("lazy").setup({
 				{ "<leader>d", group = "[D]ebug/diagnostics", mode = { "n", "v" } },
 				{ "<leader>s", group = "[S]earch", mode = { "n", "v" } },
 				{ "<leader>t", group = "[T]oggle" },
+				{ "<leader>g", group = "[G]it" },
 				{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
 				{ "gr", group = "LSP Actions", mode = { "n" } },
 			},
@@ -742,9 +772,12 @@ require("lazy").setup({
 			local builtin = require("telescope.builtin")
 			vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 			vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
-			vim.keymap.set("n", "<leader>sf", function()
+			local function find_project_files()
 				builtin.find_files({ cwd = project_root() })
-			end, { desc = "[S]earch [F]iles" })
+			end
+			vim.keymap.set("n", "<leader>sf", find_project_files, { desc = "[S]earch [F]iles" })
+			vim.keymap.set("n", "<leader><CR>", find_project_files, { desc = "Find project files" })
+			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "Find open buffers" })
 			vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 			vim.keymap.set({ "n", "v" }, "<leader>sw", function()
 				builtin.grep_string({ cwd = project_root() })
@@ -756,7 +789,7 @@ require("lazy").setup({
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
 			vim.keymap.set("n", "<leader>sc", builtin.commands, { desc = "[S]earch [C]ommands" })
-			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "[ ] Find existing buffers" })
+			vim.keymap.set("n", "<leader>sb", builtin.buffers, { desc = "[S]earch open [B]uffers" })
 
 			-- This runs on LSP attach per buffer (see main LSP attach function in 'neovim/nvim-lspconfig' config for more info,
 			-- it is better explained there). This allows easily switching between pickers if you prefer using something else!
@@ -764,6 +797,9 @@ require("lazy").setup({
 				group = vim.api.nvim_create_augroup("telescope-lsp-attach", { clear = true }),
 				callback = function(event)
 					local buf = event.buf
+					vim.keymap.set("n", "gd", builtin.lsp_definitions, { buffer = buf, desc = "Go to definition" })
+					vim.keymap.set("n", "gi", builtin.lsp_implementations, { buffer = buf, desc = "Go to implementation" })
+					vim.keymap.set("n", "gy", builtin.lsp_type_definitions, { buffer = buf, desc = "Go to type definition" })
 
 					-- Find references for the word under your cursor.
 					vim.keymap.set("n", "grr", builtin.lsp_references, { buffer = buf, desc = "[G]oto [R]eferences" })
@@ -913,6 +949,8 @@ require("lazy").setup({
 					-- WARN: This is not Goto Definition, this is Goto Declaration.
 					--  For example, in C this would take you to the header.
 					map("grD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
+					map("gD", vim.lsp.buf.declaration, "Go to declaration")
+					map("K", vim.lsp.buf.hover, "Hover documentation")
 
 					-- The following two autocommands are used to highlight references of the
 					-- word under your cursor when your cursor rests there for a little while.
@@ -1363,21 +1401,7 @@ require("lazy").setup({
 	-- require 'kickstart.plugins.lint',
 	-- require 'kickstart.plugins.autopairs',
 	require("kickstart.plugins.neo-tree"),
-	{
-		"akinsho/bufferline.nvim",
-		version = "*",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
-		config = function()
-			vim.opt.termguicolors = true
-			vim.opt.showtabline = 2
-			require("bufferline").setup({
-				options = {
-					diagnostics = "nvim_lsp",
-					offsets = { { filetype = "neo-tree", text = "Files", separator = true } },
-				},
-			})
-		end,
-	},
+	require("kickstart.plugins.git")(project_root),
 	-- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
 
 	-- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`

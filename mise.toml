@@ -506,6 +506,20 @@ source = "192.168.0.0/16"
 action = "allow"
 
 [[bootstrap.linux.firewall.rules]]
+name = "localsend-lan-tcp"
+protocol = "tcp"
+port = 53317
+source = "192.168.1.0/24"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
+name = "localsend-lan-udp"
+protocol = "udp"
+port = 53317
+source = "192.168.1.0/24"
+action = "allow"
+
+[[bootstrap.linux.firewall.rules]]
 name = "libvirt-tcp-53"
 interface = "virbr0"
 protocol = "tcp"

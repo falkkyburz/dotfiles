@@ -42,6 +42,7 @@ return {
       },
     },
     filesystem = {
+      use_libuv_file_watcher = true, -- Refresh when files change outside Neovim.
       follow_current_file = { enabled = true },
       bind_to_cwd = true,
       window = {
