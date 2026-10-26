@@ -215,7 +215,12 @@ run = "bash scripts/prerequisites.sh"
 
 [tasks.bootstrap]
 description = "Complete system configuration after mise bootstrap installs packages and dotfiles"
-run = ["bash scripts/configure.sh", "bash scripts/user-services.sh", "bash home/.local/bin/install-minibar-gpu"]
+run = ["mise run install:ai", "bash scripts/configure.sh", "bash scripts/user-services.sh", "bash home/.local/bin/install-minibar-gpu"]
+
+[tasks."install:ai"]
+description = "Install Codex and OpenCode 1 into ~/.local/bin using npm"
+# Match home/.npmrc even when running this task before dotfiles are deployed.
+run = 'npm install --global --prefix "$HOME/.local" @openai/codex opencode-ai'
 
 [tasks.apply]
 description = "Apply dotfile symlinks without provisioning the system"
