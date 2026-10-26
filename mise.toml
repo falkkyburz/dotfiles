@@ -220,7 +220,7 @@ run = ["mise run install:ai", "bash scripts/configure.sh", "bash scripts/user-se
 [tasks."install:ai"]
 description = "Install Codex and OpenCode 1 into ~/.local/bin using npm"
 # Match home/.npmrc even when running this task before dotfiles are deployed.
-run = 'npm install --global --prefix "$HOME/.local" @openai/codex opencode-ai'
+run = 'npm install --global --prefix "$HOME/.local" --allow-scripts=opencode-ai @openai/codex opencode-ai'
 
 [tasks.apply]
 description = "Apply dotfile symlinks without provisioning the system"
